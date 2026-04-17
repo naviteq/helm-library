@@ -1,0 +1,56 @@
+{{- define "library.app" -}}
+
+{{ include "library.configMap" . }}
+{{ include "library.secret" . }}
+{{ include "library.serviceAccount" . }}
+{{ include "library.rbac" . }}
+{{- if .Values.image.repository }}
+{{- if .Values.statefulSet.enabled }}
+{{ include "library.statefulSet" . }}
+{{- else }}
+{{ include "library.deployment" . }}
+{{- end }}
+{{- end }}
+{{ include "library.hpa" . }}
+{{ include "library.pdb" . }}
+
+{{ include "library.ingress" . }}
+
+{{- if and .Values.ports .Values.service.ports }}
+{{ include "library.service" . }}
+{{- end }}
+
+{{- /* ── External Secrets Operator ──────────────────────────────────── */}}
+{{ include "library.externalSecrets" . }}
+{{ include "library.secretStores" . }}
+{{ include "library.clusterSecretStores" . }}
+{{ include "library.clusterExternalSecrets" . }}
+{{ include "library.pushSecrets" . }}
+{{ include "library.clusterPushSecrets" . }}
+{{ include "library.generators" . }}
+
+{{- /* ── KEDA ─────────────────────────────────────────────────────────── */}}
+{{ include "library.scaledObjects" . }}
+{{ include "library.scaledJobs" . }}
+{{ include "library.triggerAuthentications" . }}
+{{ include "library.clusterTriggerAuthentications" . }}
+
+{{- /* ── GCP ──────────────────────────────────────────────────────────── */}}
+{{ include "library.backendConfigs" . }}
+{{ include "library.frontendConfigs" . }}
+{{ include "library.managedCertificates" . }}
+
+{{- /* ── AWS ──────────────────────────────────────────────────────────── */}}
+{{ include "library.eniConfigs" . }}
+{{ include "library.ingressClassParams" . }}
+{{ include "library.targetGroupBindings" . }}
+{{ include "library.securityGroupPolicies" . }}
+
+{{- /* ── Gateway API ───────────────────────────────────────────────────── */}}
+{{ include "library.gateways" . }}
+{{ include "library.httpRoutes" . }}
+{{ include "library.tlsRoutes" . }}
+{{ include "library.tcpRoutes" . }}
+{{ include "library.grpcRoutes" . }}
+
+{{- end }}
