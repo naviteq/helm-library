@@ -1,0 +1,22 @@
+{{/*
+Render TargetGroupBinding CRs from .Values.aws.targetGroupBindings dict.
+Each key becomes a resource named <fullname>-<key>.
+TargetGroupBindings bind Kubernetes Services to existing AWS Target Groups,
+allowing ALB/NLB target groups to route traffic directly to pod IPs.
+Useful when the load balancer is managed outside Kubernetes (e.g. Terraform)
+but pods need to register as targets.
+
+apiVersion: elbv2.k8s.aws/v1beta1
+ref: https://kubernetes-sigs.github.io/aws-load-balancer-controller/v3.1/guide/targetgroupbinding/spec/
+*/}}
+{{- define "library.targetGroupBindings" -}}
+{{- range $name, $tgb := .Values.aws.targetGroupBindings }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        $tgb
+  "kind"       "TargetGroupBinding"
+  "apiVersion" "elbv2.k8s.aws/v1beta1"
+  "namespaced" true
+  "context"    $) }}
+{{- end }}
+{{- end -}}

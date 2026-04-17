@@ -1,0 +1,20 @@
+{{/*
+Render GRPCRoute CRs from .Values.apiGateway.grpcRoutes dict.
+Each key becomes a resource named <fullname>-<key>.
+GRPCRoutes define gRPC routing rules — matching by service and method names,
+with support for header matching and traffic splitting.
+
+apiVersion: gateway.networking.k8s.io/v1
+ref: https://gateway-api.sigs.k8s.io/guides/grpc-routing/
+*/}}
+{{- define "library.grpcRoutes" -}}
+{{- range $name, $gr := .Values.apiGateway.grpcRoutes }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        $gr
+  "kind"       "GRPCRoute"
+  "apiVersion" "gateway.networking.k8s.io/v1"
+  "namespaced" true
+  "context"    $) }}
+{{- end }}
+{{- end -}}

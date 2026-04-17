@@ -1,0 +1,22 @@
+{{/*
+Render ManagedCertificate CRs from .Values.gcp.managedCertificates dict.
+Each key becomes a resource named <fullname>-<key>.
+GCP-managed TLS certificates — GKE provisions and renews them automatically.
+
+To associate with an Ingress, annotate it:
+  networking.gke.io/managed-certificates: <fullname>-<key>
+
+apiVersion: networking.gke.io/v1
+ref: https://cloud.google.com/kubernetes-engine/docs/how-to/managed-certs
+*/}}
+{{- define "library.managedCertificates" -}}
+{{- range $name, $mc := .Values.gcp.managedCertificates }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        $mc
+  "kind"       "ManagedCertificate"
+  "apiVersion" "networking.gke.io/v1"
+  "namespaced" true
+  "context"    $) }}
+{{- end }}
+{{- end -}}

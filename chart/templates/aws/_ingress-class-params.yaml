@@ -1,0 +1,26 @@
+{{/*
+Render IngressClassParams CRs from .Values.aws.ingressClassParams dict.
+Each key becomes a resource named <fullname>-<key>.
+IngressClassParams configure the AWS Load Balancer Controller ingress class:
+scheme (internet-facing/internal), IP address type, load balancer attributes,
+tags, and target group attributes.
+
+Reference from an IngressClass via:
+  spec.parameters.apiGroup: elbv2.k8s.aws
+  spec.parameters.kind: IngressClassParams
+  spec.parameters.name: <fullname>-<key>
+
+apiVersion: elbv2.k8s.aws/v1beta1
+ref: https://kubernetes-sigs.github.io/aws-load-balancer-controller/v3.1/guide/ingress/ingress_class/#ingressclassparams
+*/}}
+{{- define "library.ingressClassParams" -}}
+{{- range $name, $icp := .Values.aws.ingressClassParams }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        $icp
+  "kind"       "IngressClassParams"
+  "apiVersion" "elbv2.k8s.aws/v1beta1"
+  "namespaced" false
+  "context"    $) }}
+{{- end }}
+{{- end -}}

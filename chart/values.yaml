@@ -1,0 +1,1638 @@
+---
+exports:
+  defaults:
+    ## @section Global parameters
+    ## Global Docker image parameters
+    ## Please, note that this will override the image parameters, including dependencies, configured to use the global value
+    ## Current available global Docker image parameters: imageRegistry, imagePullSecrets and storageClass
+
+    ## @param global.imageRegistry Global Docker image registry
+    ## @param global.imagePullSecrets Global Docker registry secret names as an array
+    ## @param global.storageClass Global StorageClass for Persistent Volume(s)
+    ##
+    ## @section Common parameters
+
+    ## @param kubeVersion Force target Kubernetes version (using Helm capabilities if not set)
+    ##
+    kubeVersion: ""
+
+    ## @param nameOverride String to partially override common.names.fullname template with a string (will maintain the release name)
+    ##
+    nameOverride: ""
+
+    ## @param fullnameOverride String to fully override common.names.fullname template with a string
+    ##
+    fullnameOverride: ""
+
+    ## @param namespaceOverride String to fully override common.names.namespace template with a string
+    ##
+    namespaceOverride: ""
+
+    ## @param clusterDomain Kubernetes Cluster Domain name
+    ##
+    clusterDomain: cluster.local
+
+    ## @param annotations Additional annotations to be added to the App Deployment or Statefulset. Evaluated as a template
+    ##
+    annotations: {}
+
+    ## @param labels Additional labels to be added to the App Deployment or Statefulset. Evaluated as a template
+    ##
+    labels:
+      project: demo
+
+    ## @param commonLabels Labels to be added to all deployed resources
+    ##
+    commonLabels: {}
+
+    ## @param commonAnnotations Annotations to be added to all deployed resources
+    ##
+    commonAnnotations: {}
+
+    ## @section Library parameters
+
+    ## Library (App) image version
+    ## ref: https://kubernetes.io/docs/concepts/containers/images
+    ## @param image.registry Image registry
+    ## @param image.repository Image repository
+    ## @param image.tag Image tag (immutable tags are recommended)
+    ## @param image.digest Image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag
+    ## @param image.pullPolicy Image pull policy
+    ## @param image.pullSecrets Image pull secrets
+    ##
+    image:
+      registry: docker.io
+      repository: ""
+      tag: ""
+      digest: ""
+
+      ## Specify a imagePullPolicy
+      ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
+      ## ref: https://kubernetes.io/docs/user-guide/images/#pre-pulling-images
+      ##
+      pullPolicy: null
+
+      ## Optionally specify an array of imagePullSecrets (secrets must be manually created in the namespace)
+      ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+      ## Example:
+      ## pullSecrets:
+      ##   - myRegistryKeySecretName
+      ##
+      pullSecrets: []
+
+    ## Enable diagnostic mode in the deployment
+    ##
+    diagnosticMode:
+      ## @param diagnosticMode.enabled Enable diagnostic mode (all probes will be disabled and the command will be overridden)
+      ##
+      enabled: false
+      ## @param diagnosticMode.command Command to override all containers in the the deployment
+      ##
+      command:
+        - sleep
+      ## @param diagnosticMode.args Args to override all containers in the the deployment
+      ##
+      args:
+        - infinity
+
+    ## @param replicaCount Number of APP replicas
+    ## Note: ReadWriteMany PVCs are required to scale
+    ##
+    replicaCount: 1
+
+    ## @param revisionHistoryLimit The number of old history to retain to allow rollback
+    ##
+    revisionHistoryLimit: 30
+
+    ## List of ports to expose from the container.
+    ## ref: https://kubernetes.io/docs/concepts/services-networking/connect-applications-service
+    ##
+    ports:
+      - name: http
+        containerPort: 8080
+        protocol: TCP
+
+    ## Configure extra options for liveness probe
+    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#configure-probes
+    ## @param livenessProbe.enabled Enable livenessProbe
+    ## @param livenessProbe.initialDelaySeconds Initial delay seconds for livenessProbe
+    ## @param livenessProbe.periodSeconds Period seconds for livenessProbe
+    ## @param livenessProbe.timeoutSeconds Timeout seconds for livenessProbe
+    ## @param livenessProbe.failureThreshold Failure threshold for livenessProbe
+    ## @param livenessProbe.successThreshold Success threshold for livenessProbe
+    ##
+    ## Example:
+    ## livenessProbe:
+    ##   enabled: true
+    ##   httpGet:
+    ##     path: /
+    ##     port: http
+    ##     httpHeaders:
+    ##       - name: Custom-Header
+    ##         value: Awesome
+    ##   grpc:
+    ##     port: 2379
+    ##   tcpSocket:
+    ##     port: http
+    ##   exec:
+    ##     command:
+    ##       - cat
+    ##       - /tmp/healthy
+    ##   initialDelaySeconds: 0
+    ##   periodSeconds: 10
+    ##   timeoutSeconds: 1
+    ##   failureThreshold: 3
+    ##   successThreshold: 1
+    ##
+    livenessProbe:
+      enabled: false
+
+    ## Configure extra options for readiness probe
+    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#configure-probes
+    ## @param readinessProbe.enabled Enable readinessProbe
+    ## @param readinessProbe.initialDelaySeconds Initial delay seconds for readinessProbe
+    ## @param readinessProbe.periodSeconds Period seconds for readinessProbe
+    ## @param readinessProbe.timeoutSeconds Timeout seconds for readinessProbe
+    ## @param readinessProbe.failureThreshold Failure threshold for readinessProbe
+    ## @param readinessProbe.successThreshold Success threshold for readinessProbe
+    ##
+    ## Example:
+    ## readinessProbe:
+    ##   enabled: true
+    ##   httpGet:
+    ##     path: /
+    ##     port: http
+    ##     httpHeaders:
+    ##       - name: Custom-Header
+    ##         value: Awesome
+    ##   grpc:
+    ##     port: 2379
+    ##   tcpSocket:
+    ##     port: http
+    ##   exec:
+    ##     command:
+    ##       - cat
+    ##       - /tmp/healthy
+    ##   initialDelaySeconds: 0
+    ##   periodSeconds: 10
+    ##   timeoutSeconds: 1
+    ##   failureThreshold: 3
+    ##   successThreshold: 1
+    ##
+    readinessProbe:
+      enabled: false
+
+    ## Configure extra options for startup probe
+    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#configure-probes
+    ## @param startupProbe.enabled Enable startupProbe
+    ## @param startupProbe.httpGet.path Request path for startupProbe
+    ## @param startupProbe.initialDelaySeconds Initial delay seconds for startupProbe
+    ## @param startupProbe.periodSeconds Period seconds for startupProbe
+    ## @param startupProbe.timeoutSeconds Timeout seconds for startupProbe
+    ## @param startupProbe.failureThreshold Failure threshold for startupProbe
+    ## @param startupProbe.successThreshold Success threshold for startupProbe
+    ##
+    ## Example:
+    ## startupProbe:
+    ##   enabled: true
+    ##   httpGet:
+    ##     path: /
+    ##     port: http
+    ##     httpHeaders:
+    ##       - name: Custom-Header
+    ##         value: Awesome
+    ##   grpc:
+    ##     port: 2379
+    ##   tcpSocket:
+    ##     port: http
+    ##   exec:
+    ##     command:
+    ##       - cat
+    ##       - /tmp/healthy
+    ##   initialDelaySeconds: 0
+    ##   periodSeconds: 10
+    ##   timeoutSeconds: 1
+    ##   failureThreshold: 3
+    ##   successThreshold: 1
+    ##
+    startupProbe:
+      enabled: false
+
+    ## Configure pod Restart Policy
+    ## ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#restart-policy
+    ## @param RestartPolicy Restart policy for all containers within the pod
+    podRestartPolicy: Always
+
+    ## Configure APP pods Security Context
+    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+    ## @param podSecurityContext.enabled Enabled APP pods' Security Context
+    ## @param podSecurityContext.fsGroup Set APP pod's Security Context fsGroup
+    ##
+    podSecurityContext:
+      enabled: false
+      fsGroup: 0
+
+    ## Configure Container Security Context (only main container)
+    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container
+    ## @param containerSecurityContext.enabled Enabled APP containers' Security Context
+    ## @param containerSecurityContext.runAsUser Set APP containers' Security Context runAsUser
+    ## @param containerSecurityContext.runAsNonRoot Set APP container's Security Context runAsNonRoot
+    ##
+    containerSecurityContext:
+      enabled: false
+      runAsUser: 1001
+      runAsNonRoot: true
+
+    ## @param lifecycleHooks LifecycleHook to set additional configuration at startup Evaluated as a template
+    ##
+    lifecycleHooks: {}
+
+    ## APP's resource requests and limits
+    ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+    ## We usually recommend not to specify default resources and to leave this as a conscious
+    ## choice for the user. This also increases chances charts run on environments with little
+    ## resources, such as Minikube. If you do want to specify resources, uncomment the following
+    ## lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    ## @param resources.limits The resources limits for the container
+    ## @param resources.requests The requested resources for the container
+    ##
+    resources:
+      ## Example:
+      ## limits:
+      ##    cpu: 100m
+      ##    memory: 128Mi
+      limits: {}
+      ## Examples:
+      ## requests:
+      ##    cpu: 100m
+      ##    memory: 128Mi
+      requests: {}
+
+    ## @param hostAliases Add deployment host aliases
+    ## https://kubernetes.io/docs/concepts/services-networking/add-entries-to-pod-etc-hosts-with-host-aliases/
+    ##
+    hostAliases: []
+
+    ## @param podLabels Additional pod labels
+    ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+    ##
+    podLabels: {}
+
+    ## @param podAnnotations Additional pod annotations
+    ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+    ##
+    podAnnotations: {}
+
+    ## @param podAffinityPreset Pod affinity preset. Allowed values: soft, hard
+    ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity
+    ##
+    podAffinityPreset: ""
+
+    ## @param podAntiAffinityPreset Pod anti-affinity preset. Ignored if `affinity` is set. Allowed values: `soft` or `hard`
+    ## Ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity
+    ##
+    podAntiAffinityPreset: soft
+
+    ## Node affinity preset
+    ## Ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#node-affinity
+    ## @param nodeAffinityPreset.type Node affinity preset type. Ignored if `affinity` is set. Allowed values: `soft` or `hard`
+    ## @param nodeAffinityPreset.key Node label key to match Ignored if `affinity` is set.
+    ## @param nodeAffinityPreset.values Node label values to match. Ignored if `affinity` is set.
+    ##
+    nodeAffinityPreset:
+      type: ""
+      ## E.g.
+      ## key: "kubernetes.io/e2e-az-name"
+      ##
+      key: ""
+      ## E.g.
+      ## values:
+      ##   - e2e-az1
+      ##   - e2e-az2
+      ##
+      values: []
+
+    ## @param affinity Affinity for pod assignment
+    ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+    ## Note: podAffinityPreset, podAntiAffinityPreset, and  nodeAffinityPreset will be ignored when it's set
+    ##
+    affinity: {}
+
+    ## @param nodeSelector Node labels for pod assignment.
+    ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
+    ##
+    nodeSelector: {}
+
+    ## @param tolerations Tolerations for pod assignment.
+    ## Ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+    ##
+    tolerations: []
+
+    ## @param topologySpreadConstraints Topology Spread Constraints for pod assignment spread across your cluster among failure-domains. Evaluated as a template
+    ## Ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/#spread-constraints-for-pods
+    ##
+    topologySpreadConstraints: []
+
+    ## @param priorityClassName Priority Class Name
+    ## ref: https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/#priorityclass
+    ##
+    priorityClassName: ""
+
+    ## @param schedulerName Use an alternate scheduler, e.g. "stork".
+    ## ref: https://kubernetes.io/docs/tasks/administer-cluster/configure-multiple-schedulers/
+    ##
+    schedulerName: ""
+
+    ## @param terminationGracePeriodSeconds Seconds APP pod needs to terminate gracefully
+    ## ref: https://kubernetes.io/docs/concepts/workloads/pods/pod/#termination-of-pods
+    ##
+    terminationGracePeriodSeconds: ""
+
+    ## @param updateStrategy.type APP deployment strategy type
+    ## @param updateStrategy.rollingUpdate APP deployment rolling update configuration parameters
+    ## ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy
+    ##
+    updateStrategy:
+      type: RollingUpdate
+
+    ## @param extraVolumes Array to add extra volumes (evaluated as a template)
+    ## Example:
+    ## extraVolumes:
+    ##   - name: vol-conf
+    ##     configMap:
+    ##       name: "configmap-name"
+    ##   - name: vol-secret
+    ##     secret:
+    ##       secretName: "secret-name"
+    ##
+    extraVolumes: []
+
+    ## @param extraVolumeMounts Array to add extra mounts (normally used with extraVolumes, evaluated as a template)
+    ## Example:
+    ## extraVolumeMounts:
+    ##   - name: vol-conf
+    ##     mountPath: "/app/config"
+    ##
+    extraVolumeMounts: []
+
+    ## @param sidecars Add additional sidecar containers to the APP pods
+    ## Example:
+    ## sidecars:
+    ##   - name: your-image-name
+    ##     image: your-image
+    ##     imagePullPolicy: Always
+    ##     ports:
+    ##       - name: portname
+    ##         containerPort: 1234
+    ##
+    sidecars: []
+
+    ## @param initContainers Add additional init containers to the APP pods
+    ## Example:
+    ## initContainers:
+    ##   - name: your-image-name
+    ##     image: your-image
+    ##     imagePullPolicy: Always
+    ##     ports:
+    ##       - name: portname
+    ##         containerPort: 1234
+    ##
+    initContainers: []
+
+    ## @param command Override default container command
+    ##
+    command: []
+
+    ## @param args Override default container args
+    ##
+    args: []
+
+    ## @param envVars Environment variables to be set on APP container
+    ## Example:
+    ## envVars:
+    ##   FOO: "foo"
+    ##   BAZ:
+    ##     valueFrom:
+    ##       configMapRef: ...
+    ##
+    envVars: null
+
+    ## @param envVarsConfigMap ConfigMap with environment variables
+    ##
+    envVarsConfigMap: ""
+
+    ## @param envVarsSecret Secret with environment variables
+    ##
+    envVarsSecret: ""
+
+    ## Add an horizontal pod autoscaler
+    ## ref: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
+    ## @param autoscaling.enabled Deploy a HorizontalPodAutoscaler object for the APP deployment
+    ## @param autoscaling.minReplicas Minimum number of replicas to scale back
+    ## @param autoscaling.maxReplicas Maximum number of replicas to scale out
+    ## @param autoscaling.targetCPU Define the CPU target to trigger the scaling actions (utilization percentage)
+    ## @param autoscaling.targetMemory Define the memory target to trigger the scaling actions (utilization percentage)
+    ## @param autoscaling.metrics [array] Metrics to use when deciding to scale the deployment (evaluated as a template)
+    ##
+    autoscaling:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPU: 80
+      targetMemory: 80
+      metrics: []
+
+    ## Configure the ConfigMap resource that allows you to store non-confidential data in key-value pairs.
+    ## ref: https://kubernetes.io/docs/concepts/configuration/configmap/
+    ##
+    configMaps: {}
+      ## test:
+      ##   mounted: false
+      ##   mountPath: "/app/config"
+      ##   subPath: ""
+      ##   ## @param configMap.data store data in key-value pairs
+      ##   e.g:
+      ##   data:
+      ##     config.yaml:
+      ##       mode: production
+      ##      FOO: bar
+      ##     DEBUG: true
+      ##   data: {}
+      ##   @param secret.annotations Additional custom annotations for the ConfigMap
+      ##   annotations: {}
+      ##   @param secret.labels Additional custom labels for the ConfigMap
+      ##   labels: {}
+
+    ## Configure the Secret resource that allows you to store a small amount of sensitive data such as a password, a token, or a key.
+    ## ref: https://kubernetes.io/docs/concepts/configuration/secret
+    ##
+    secret:
+      ## @param secret.type the type is used to facilitate programmatic handling of the Secret data
+      type: "Opaque"
+      ## @param secret.data store data in key-value pairs (base64-encoded)
+      ##
+      ## e.g:
+      ## data:
+      ##   username: YWRtaW4=
+      ##   password: MWYyZDFlMmU2N2Rm
+      ##
+      data: {}
+      ## @param secret.stringData store data in key-value pairs (plain text, encoded by Kubernetes)
+      ##
+      ## e.g:
+      ## stringData:
+      ##   username: admin
+      ##   password: t0p-Secret
+      ##
+      stringData: {}
+
+      ## @param secret.annotations Additional custom annotations for the Secret
+      ##
+      annotations: {}
+
+      ## @param secret.labels Additional custom labels for the Secret
+      ##
+      labels: {}
+
+      ## @param secret.mounted Mount secret as files inside the container
+      ##
+      mounted: false
+
+      ## @param secret.mountPath Path where the secret will be mounted
+      ## e.g: /app/secrets
+      ##
+      mountPath: ""
+
+      ## @param secret.subPath SubPath within the secret volume to mount (mounts a single key as a file)
+      ##
+      subPath: ""
+
+      ## @param secret.defaultMode Optional mode bits to set on mounted files (octal). Default: 0644
+      ## e.g: 0400
+      ##
+      defaultMode: null
+
+      ## @param secret.items Project specific keys from the secret to specific paths
+      ## e.g:
+      ## items:
+      ##   - key: config.yaml
+      ##     path: config.yaml
+      ##
+      items: []
+
+    ## Configure the ingress resource that allows you to access the APP
+    ## ref: https://kubernetes.io/docs/user-guide/ingress/
+    ##
+    ingress:
+      ## @param ingress.enabled Enable ingress resource for the APP
+      ##
+      enabled: false
+
+      ## @param ingress.path Path for the default host
+      ##
+      path: /
+
+      ## @param ingress.apiVersion Override API Version (automatically detected if not set)
+      ##
+      apiVersion: ""
+
+      ## @param ingress.pathType Ingress path type
+      ##
+      pathType: ImplementationSpecific
+
+      ## @param ingress.hostname Default host for the ingress resource, a host pointing to this will be created
+      ##
+      hostname: app.local
+
+      ## @param ingress.annotations Additional annotations for the Ingress resource. To enable certificate autogeneration, place here your cert-manager annotations.
+      ## For a full list of possible ingress annotations, please see
+      ## ref: https://github.com/kubernetes/ingress-nginx/blob/master/docs/user-guide/nginx-configuration/annotations.md
+      ## Use this parameter to set the required annotations for cert-manager, see
+      ## ref: https://cert-manager.io/docs/usage/ingress/#supported-annotations
+      ##
+      ## e.g:
+      ## annotations:
+      ##   kubernetes.io/ingress.class: nginx
+      ##   cert-manager.io/cluster-issuer: cluster-issuer-name
+      ##
+      annotations: {}
+
+      ## @param ingress.ingressClassName Set the ingerssClassName on the ingress record for k8s 1.18+
+      ## This is supported in Kubernetes 1.18+ and required if you have more than one IngressClass marked as the default for your cluster .
+      ## ref: https://kubernetes.io/blog/2020/04/02/improvements-to-the-ingress-api-in-kubernetes-1.18/
+      ##
+      ingressClassName: ""
+
+      ## @param ingress.tls Enable TLS configuration for the hostname defined at ingress.hostname parameter
+      ## TLS certificates will be retrieved from a TLS secret with name: {{- printf "%s-tls" .Values.ingress.hostname }}
+      ## or a custom one if you use the tls.existingSecret parameter
+      ## You can use the ingress.secrets parameter to create this TLS secret or relay on cert-manager to create it
+      ## Example:
+      ## existingSecret: name-of-existing-secret
+      ##
+      tls: false
+
+      ## @param ingress.extraHosts An array with additional hostname(s) to be covered with the ingress record
+      ## Most likely the hostname above will be enough, but in the event more hosts are needed, this is an array
+      ## extraHosts:
+      ## - name: app.local
+      ##   path: /
+      extraHosts: []
+
+      ## @param ingress.extraPaths Any additional arbitrary paths that may need to be added to the ingress under the main host.
+      ## For example: The ALB ingress controller requires a special rule for handling SSL redirection.
+      ## extraPaths:
+      ## - path: /*
+      ##   backend:
+      ##     serviceName: ssl-redirect
+      ##     servicePort: use-annotation
+      ##
+      extraPaths: []
+
+      ## @param ingress.selfSigned Create a TLS secret for this ingress record using self-signed certificates generated by Helm
+      ##
+      selfSigned: false
+
+      ## @param ingress.extraTls TLS configuration for additional hostname(s) to be covered with this ingress record
+      ## see: https://kubernetes.io/docs/concepts/services-networking/ingress/#tls
+      ## extraTls:
+      ## - hosts:
+      ##     - ap.local
+      ##   secretName: app.local-tls
+      ##
+      extraTls: []
+
+      ## @param ingress.secrets If you're providing your own certificates, please use this to add the certificates as secrets
+      ## key and certificate should start with -----BEGIN CERTIFICATE----- or
+      ## -----BEGIN RSA PRIVATE KEY-----
+      ##
+      ## name should line up with a tlsSecret set further up
+      ## If you're using cert-manager, this is unneeded, as it will create the secret for you if it is not set
+      ##
+      ## It is also possible to create and manage the certificates outside of this helm chart
+      ## Please see README.md for more information
+      ## Example:
+      ## - name: app.local-tls
+      ##   key:
+      ##   certificate:
+      ##
+      secrets: []
+
+      ## @param ingress.existingSecret It is you own the certificate as secret.
+      existingSecret: ""
+
+      ## @param ingress.extraRules Additional rules to be covered with this ingress record
+      ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-rules
+      ## e.g:
+      ## extraRules:
+      ## - host: example.local
+      ##     http:
+      ##       path: /
+      ##       backend:
+      ##         service:
+      ##           name: example-svc
+      ##           port:
+      ##             name: http
+      ##
+      extraRules: []
+
+    ## APP service parameters
+    ##
+    service:
+      ## @param service.type APP service type
+      ##
+      type: ClusterIP
+
+      ## @param service.ports APP service ports
+      ##
+      ports:
+        - name: http
+          protocol: TCP
+          port: 80
+          targetPort: http
+
+      ## @param service.test for helm tests
+      ##
+      test: /
+
+      ## @param service.sessionAffinity Control where client requests go, to the same pod or round-robin
+      ## Values: ClientIP or None
+      ## ref: https://kubernetes.io/docs/user-guide/services/
+      ##
+      sessionAffinity: None
+
+      ## @param service.clusterIP APP service Cluster IP
+      ## e.g.:
+      ## clusterIP: None
+      ##
+      clusterIP: ""
+
+      ## @param service.loadBalancerIP APP service Load Balancer IP
+      ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#type-loadbalancer
+      ##
+      loadBalancerIP: ""
+
+      ## @param service.loadBalancerSourceRanges APP service Load Balancer sources
+      ## ref: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/#restrict-access-for-loadbalancer-service
+      ## e.g:
+      ## loadBalancerSourceRanges:
+      ##   - 10.10.10.0/24
+      ##
+      loadBalancerSourceRanges: []
+
+      ## @param service.externalTrafficPolicy APP service external traffic policy
+      ## ref https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/#preserving-the-client-source-ip
+      ##
+      externalTrafficPolicy: Cluster
+
+      ## @param service.annotations Additional custom annotations for APP service
+      ##
+      annotations: {}
+
+    ## Prometheus Operator ServiceMonitor configuration
+    ##
+    serviceMonitor:
+      ## @param serviceMonitor.enabled Specify if a ServiceMonitor will be deployed for Prometheus Operator
+      ##
+      enabled: false
+
+      ## @param serviceMonitor.namespace Namespace in which Prometheus is running
+      ##
+      namespace: ""
+
+      ## @param serviceMonitor.labels Additional ServiceMonitor labels (evaluated as a template)
+      ##
+      labels: {}
+
+      ## @param serviceMonitor.annotations Additional ServiceMonitor annotations (evaluated as a template)
+      ##
+      annotations: {}
+
+      ## @param serviceMonitor.jobLabel The name of the label on the target service to use as the job name in Prometheus
+      ##
+      jobLabel: ""
+
+      ## @param serviceMonitor.honorLabels honorLabels chooses the metric's labels on collisions with target labels
+      ##
+      honorLabels: false
+
+      ## @param serviceMonitor.interval How frequently to scrape metrics
+      ## e.g:
+      ## interval: 10s
+      ##
+      interval: ""
+
+      ## @param serviceMonitor.scrapeTimeout Timeout after which the scrape is ended
+      ## e.g:
+      ## scrapeTimeout: 10s
+      ##
+      scrapeTimeout: ""
+
+      ## @param serviceMonitor.metricRelabelings [array] Specify additional relabeling of metrics
+      ##
+      metricRelabelings: []
+
+      ## @param serviceMonitor.relabelings [array] Specify general relabeling
+      ##
+      relabelings: []
+
+      ## @param serviceMonitor.selector Prometheus instance selector labels
+      ## ref: https://github.com/bitnami/charts/tree/master/bitnami/prometheus-operator#prometheus-configuration
+      ##
+      selector: {}
+
+      ## @param serviceMonitor.namespaceSelector is a selector for selecting either all namespaces or a list of namespaces.
+      ##
+      namespaceSelector: {}
+
+      ## @param serviceMonitor.port port used by serviceMonitor
+      ##
+      port: "http"
+
+      ## @param serviceMonitor.path path used by serviceMonitor
+      ##
+      path: "/metrics"
+
+    ## Prometheus Operator PodMonitor configuration
+    ##
+    podMonitor:
+      ## @param podMonitor.enabled - Whether or not the PodMonitor should be created.
+      ##
+      enabled: false
+
+      ## @param podMonitor.namespace Namespace in which Prometheus is running
+      ##
+      namespace: ""
+
+      ## @param podMonitor.jobLabel Namespace in which Prometheus is running
+      ##
+      jobLabel: ""
+
+      #@param podMonitor.port The port where metrics should be scraped.
+      port: "http"
+
+      ## @param podMonitor.path The path where metrics are exposed.
+      ##
+      path: "/metrics"
+
+      ## @param podMonitor.interval Scrape interval. Prometheus default used if not set.
+      ##
+      interval: "30s"
+
+      ## @param podMonitor.scrapeTimeout The timeout duration after which the scrape is ended.
+      ##
+      scrapeTimeout: "10s"
+
+      ## @param podMonitor.labels Additional PodMonitor labels (evaluated as a template)
+      ##
+      labels: {}
+
+      ## @param podMonitor.relabelings [array] Specify general relabeling
+      ##
+      relabelings: {}
+
+      ## @param podMonitor.metricRelabelings [array] Specify additional relabeling of metrics
+      ##
+      metricRelabelings: []
+
+      ## @param podMonitor.namespaceSelector is a selector for selecting either all namespaces or a list of namespaces.
+      ##
+      namespaceSelector: {}
+
+      ## @param podMonitor.selector is a selector to select which pods will be monitored.
+      ##
+      selector: {}
+
+    ## Service account for APP pods to use.
+    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/
+    ##
+    serviceAccount:
+      ## @param serviceAccount.create Enable creation of ServiceAccount for APP pods
+      ##
+      create: false
+
+      ## @param serviceAccount.name The name of the ServiceAccount to use.
+      ## If not set and create is true, a name is generated using the common.names.fullname template
+      ##
+      name: ""
+
+      ## @param serviceAccount.automountServiceAccountToken Allows auto mount of ServiceAccountToken on the serviceAccount created
+      ## Can be set to false if pods using this serviceAccount do not need to use K8s API
+      ##
+      automountServiceAccountToken: true
+
+      ## @param serviceAccount.annotations Additional custom annotations for the ServiceAccount
+      ##
+      annotations: {}
+
+      ## @param serviceAccount.labels Additional custom labels for the ServiceAccount
+      ##
+      labels: {}
+    ## RBAC configuration
+    ## ref: https://kubernetes.io/docs/reference/access-authn-authz/rbac/
+    ##
+    rbac:
+      ## @param rbac.create Whether to create RBAC resources (Role/RoleBinding and/or ClusterRole/ClusterRoleBinding)
+      ##
+      create: false
+
+      ## @param rbac.rules Rules for the Role (namespace-scoped). If empty, no Role/RoleBinding is created.
+      ## e.g:
+      ## rules:
+      ##   - apiGroups: [""]
+      ##     resources: ["pods", "configmaps"]
+      ##     verbs: ["get", "watch", "list"]
+      ##
+      rules: []
+
+      ## @param rbac.clusterRules Rules for the ClusterRole (cluster-scoped). If empty, no ClusterRole/ClusterRoleBinding is created.
+      ## e.g:
+      ## clusterRules:
+      ##   - apiGroups: [""]
+      ##     resources: ["nodes"]
+      ##     verbs: ["get", "list", "watch"]
+      ##
+      clusterRules: []
+
+      ## @param rbac.extraSubjects Additional subjects to add to the RoleBinding/ClusterRoleBinding
+      ## e.g:
+      ## extraSubjects:
+      ##   - kind: Group
+      ##     name: my-group
+      ##     apiGroup: rbac.authorization.k8s.io
+      ##
+      extraSubjects: []
+
+      ## @param rbac.annotations Additional custom annotations for RBAC resources
+      ##
+      annotations: {}
+
+      ## @param rbac.labels Additional custom labels for RBAC resources
+      ##
+      labels: {}
+
+    ## StatefulSet configuration (optional replacement for Deployment)
+    ## ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/
+    ##
+    statefulSet:
+      ## @param statefulSet.enabled Use StatefulSet instead of Deployment
+      ##
+      enabled: false
+
+      ## @param statefulSet.serviceName Name of the headless Service that governs the StatefulSet.
+      ## If empty, defaults to the chart fullname.
+      ##
+      serviceName: ""
+
+      ## @param statefulSet.podManagementPolicy Pod management policy for the StatefulSet
+      ## Allowed values: OrderedReady | Parallel
+      ## ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#pod-management-policies
+      ##
+      podManagementPolicy: OrderedReady
+
+      ## @param statefulSet.minReadySeconds Minimum number of seconds for which a newly created pod should be running and ready
+      ##
+      minReadySeconds: 0
+
+      ## @param statefulSet.ordinals Controls the numbering of pod ordinals in the StatefulSet (k8s 1.26+)
+      ## e.g:
+      ## ordinals:
+      ##   start: 0
+      ##
+      ordinals: {}
+
+      ## @param statefulSet.persistentVolumeClaimRetentionPolicy Policy for PVC retention when pods are scaled or deleted (k8s 1.23+)
+      ## e.g:
+      ## persistentVolumeClaimRetentionPolicy:
+      ##   whenDeleted: Retain
+      ##   whenScaled: Delete
+      ##
+      persistentVolumeClaimRetentionPolicy: {}
+
+      ## @param statefulSet.volumeClaimTemplates List of PersistentVolumeClaim templates to attach to StatefulSet pods
+      ## The mountPath field is used in the container's volumeMounts (not part of the k8s VolumeClaimTemplate spec).
+      ## e.g:
+      ## volumeClaimTemplates:
+      ##   - metadata:
+      ##       name: data
+      ##     mountPath: /data
+      ##     spec:
+      ##       accessModes: ["ReadWriteOnce"]
+      ##       storageClassName: standard
+      ##       resources:
+      ##         requests:
+      ##           storage: 1Gi
+      ##
+      volumeClaimTemplates: []
+
+    ## @section External Secrets Operator
+    ## All ESO resources are disabled by default (empty dicts = no resources rendered).
+    ## Each dict key becomes the resource name suffix: <fullname>-<key>.
+    ## Every entry accepts .labels, .annotations, and .spec (passed through as-is).
+    ##
+    ## ref: https://external-secrets.io/latest/
+    ##
+    eso:
+
+      ## @param eso.externalSecrets Dict of ExternalSecret CRs to create (external-secrets.io/v1)
+      ## Included in the main app template (library.app).
+      ## Example:
+      ##   externalSecrets:
+      ##     app-db:
+      ##       labels: {}
+      ##       annotations: {}
+      ##       spec:
+      ##        tenantId: 11111111-2222-3333-4444-111111111111
+      ##        registry: example.azurecr.io
+      ##        auth:
+      ##          managedIdentity:
+      ##            identityId: 11111111-2222-3333-4444-111111111111
+      ##
+      externalSecrets: {}
+
+      ## @param eso.secretStores Dict of SecretStore CRs to create (external-secrets.io/v1)
+      ## Example:
+      ##   secretStores:
+      ##     aws-sm:
+      ##       spec:
+      ##         provider:
+      ##           aws:
+      ##             service: SecretsManager
+      ##             region: us-east-1
+      ##             auth:
+      ##               secretRef:
+      ##                 accessKeyIDSecretRef:
+      ##                   name: aws-creds
+      ##                   key: access-key
+      ##                 secretAccessKeySecretRef:
+      ##                   name: aws-creds
+      ##                   key: secret-key
+      ##
+      secretStores: {}
+
+      ## @param eso.clusterSecretStores Dict of ClusterSecretStore CRs to create (external-secrets.io/v1)
+      ## Cluster-scoped — no namespace added to metadata.
+      ## Example:
+      ##   clusterSecretStores:
+      ##     global-aws-sm:
+      ##       spec:
+      ##         provider:
+      ##           aws:
+      ##             service: SecretsManager
+      ##             region: us-east-1
+      ##             auth:
+      ##               jwt:
+      ##                 serviceAccountRef:
+      ##                   name: external-secrets-sa
+      ##                   namespace: external-secrets
+      ##
+      clusterSecretStores: {}
+
+      ## @param eso.clusterExternalSecrets Dict of ClusterExternalSecret CRs (external-secrets.io/v1)
+      ## Cluster-scoped — propagates ExternalSecrets to multiple namespaces.
+      ## Example:
+      ##   clusterExternalSecrets:
+      ##     shared-config:
+      ##       spec:
+      ##         namespaceSelector:
+      ##           matchLabels:
+      ##             eso-enabled: "true"
+      ##         refreshTime: "1h"
+      ##         externalSecretSpec:
+      ##           refreshInterval: "1h"
+      ##           secretStoreRef:
+      ##             name: global-aws-sm
+      ##             kind: ClusterSecretStore
+      ##           target:
+      ##             creationPolicy: Owner
+      ##           data:
+      ##             - secretKey: shared-key
+      ##               remoteRef:
+      ##                 key: /shared/config
+      ##
+      clusterExternalSecrets: {}
+
+      ## @param eso.pushSecrets Dict of PushSecret CRs to create (external-secrets.io/v1alpha1)
+      ## Pushes K8s Secret values to an external provider.
+      ## Example:
+      ##   pushSecrets:
+      ##     push-to-vault:
+      ##       spec:
+      ##         refreshInterval: "1h"
+      ##         secretStoreRefs:
+      ##           - name: vault-store
+      ##             kind: SecretStore
+      ##         selector:
+      ##           secret:
+      ##             name: my-k8s-secret
+      ##         data:
+      ##           - match:
+      ##               secretKey: password
+      ##               remoteRef:
+      ##                 remoteKey: myapp/password
+      ##
+      pushSecrets: {}
+
+      ## @param eso.clusterPushSecrets Dict of ClusterPushSecret CRs (external-secrets.io/v1alpha1)
+      ## Cluster-scoped variant of PushSecret.
+      ##
+      clusterPushSecrets: {}
+
+      ## Generator resources — create short-lived credentials or random values on demand.
+      ## ref: https://external-secrets.io/latest/api/generator/
+      ##
+      generators:
+
+        ## @param eso.generators.acrAccessToken Dict of ACRAccessToken generators
+        ## (generators.external-secrets.io/v1alpha1, namespaced)
+        ## Example:
+        ##   acrAccessToken:
+        ##     my-ecr:
+        ##       spec:
+        ##        dataFrom:
+        ##          - sourceRef:
+        ##              generatorRef:
+        ##                apiVersion: generators.external-secrets.io/v1alpha1
+        ##                kind: ACRAccessToken
+        ##                name: my-azurecr
+        ##        refreshInterval: 30h0s
+        ##        target:
+        ##          name: azurecr-credentials
+        ##          template:
+        ##            type: kubernetes.io/dockerconfigjson
+        ##            data:
+        ##              .dockerconfigjson: |
+        ##                {
+        ##                  "auths": {
+        ##                    "myregistry.azurecr.io": {
+        ##                      "username": "{{ .username }}",
+        ##                      "password": "{{ .password }}"
+        ##                    }
+        ##                  }
+        ##                }
+        ##
+        acrAccessToken: {}
+
+        ## @param eso.generators.ecrAuthorizationTokens Dict of ECRAuthorizationToken generators
+        ## (generators.external-secrets.io/v1alpha1, namespaced)
+        ## Example:
+        ##   ecrAuthorizationTokens:
+        ##     my-ecr:
+        ##       spec:
+        ##         region: us-east-1
+        ##         auth:
+        ##           secretRef:
+        ##             accessKeyIDSecretRef:
+        ##               name: aws-creds
+        ##               key: access-key
+        ##             secretAccessKeySecretRef:
+        ##               name: aws-creds
+        ##               key: secret-key
+        ##
+        ecrAuthorizationTokens: {}
+
+        ## @param eso.generators.stsSessionTokens Dict of STSSessionToken generators
+        ## (generators.external-secrets.io/v1alpha1, namespaced)
+        ## Example:
+        ##   stsSessionTokens:
+        ##     my-sts:
+        ##       spec:
+        ##         region: us-east-1
+        ##         role: arn:aws:iam::123456789012:role/my-role
+        ##
+        stsSessionTokens: {}
+
+        ## @param eso.generators.clusterGenerators Dict of ClusterGenerator resources
+        ## (external-secrets.io/v1alpha1, cluster-scoped)
+        ## Wraps any generator type for cluster-wide reuse.
+        ## Example:
+        ##   clusterGenerators:
+        ##     shared-password:
+        ##       spec:
+        ##         kind: Password
+        ##         generator:
+        ##           passwordSpec:
+        ##             length: 32
+        ##             digits: 8
+        ##             symbols: 4
+        ##             noUpper: false
+        ##             allowRepeat: true
+        ##
+        clusterGenerators: {}
+
+        ## @param eso.generators.gcrAccessTokens Dict of GCRAccessToken generators
+        ## (generators.external-secrets.io/v1alpha1, namespaced)
+        ## Example:
+        ##   gcrAccessTokens:
+        ##     my-gcr:
+        ##       spec:
+        ##         projectID: my-gcp-project
+        ##         auth:
+        ##           workloadIdentity:
+        ##             clusterLocation: us-central1
+        ##             clusterName: my-cluster
+        ##             clusterProjectID: my-gcp-project
+        ##             serviceAccountRef:
+        ##               name: my-k8s-sa
+        ##
+        gcrAccessTokens: {}
+
+        ## @param eso.generators.passwords Dict of Password generators
+        ## (generators.external-secrets.io/v1alpha1, namespaced)
+        ## Example:
+        ##   passwords:
+        ##     app-password:
+        ##       spec:
+        ##         length: 24
+        ##         digits: 6
+        ##         symbols: 4
+        ##         symbolCharacters: "!@#%^&*"
+        ##         noUpper: false
+        ##         allowRepeat: false
+        ##
+        passwords: {}
+
+        ## @param eso.generators.fakes Dict of Fake generators
+        ## (generators.external-secrets.io/v1alpha1, namespaced)
+        ## Returns static values — useful for development/testing.
+        ## Example:
+        ##   fakes:
+        ##     mock-creds:
+        ##       spec:
+        ##         data:
+        ##           username: admin
+        ##           password: dev-password
+        ##
+        fakes: {}
+
+        ## @param eso.generators.uuids Dict of UUID generators
+        ## (generators.external-secrets.io/v1alpha1, namespaced)
+        ## Generates a random UUID on each refresh.
+        ## Example:
+        ##   uuids:
+        ##     request-id:
+        ##       spec: {}
+        ##
+        uuids: {}
+
+        ## @param eso.generators.githubAccessTokens Dict of GithubAccessToken generators
+        ## (generators.external-secrets.io/v1alpha1, namespaced)
+        ## Generates short-lived GitHub App installation access tokens.
+        ## ref: https://external-secrets.io/latest/api/generator/github/
+        ##
+        githubAccessTokens: {}
+
+        ## @param eso.generators.vaultDynamicSecrets Dict of VaultDynamicSecret generators
+        ## (generators.external-secrets.io/v1alpha1, namespaced)
+        ## Generates secrets dynamically from HashiCorp Vault.
+        ## ref: https://external-secrets.io/latest/api/generator/vault/
+        ##
+        vaultDynamicSecrets: {}
+
+        ## @param eso.generators.webhooks Dict of Webhook generators
+        ## (generators.external-secrets.io/v1alpha1, cluster-scoped)
+        ## Calls an external HTTP endpoint to generate secret values.
+        ## ref: https://external-secrets.io/latest/api/generator/webhook/
+        ##
+        webhooks: {}
+
+        ## @param eso.generators.mfas Dict of MFA generators
+        ## (generators.external-secrets.io/v1alpha1, namespaced)
+        ## Generates RFC 4226 compliant TOTP tokens.
+        ## ref: https://external-secrets.io/latest/api/generator/mfa/
+        ##
+        mfas: {}
+
+        ## @param eso.generators.sshKeys Dict of SSHKey generators
+        ## (generators.external-secrets.io/v1alpha1, namespaced)
+        ## Generates SSH key pairs (Ed25519, RSA, ECDSA).
+        ## ref: https://external-secrets.io/latest/api/generator/sshkey/
+        ##
+        sshKeys: {}
+
+    ## KEDA — Kubernetes Event-driven Autoscaling
+    ## ref: https://keda.sh/docs/latest/
+    ##
+    ## All resource dicts are disabled by default (empty = no resources rendered).
+    ## Each dict key becomes the resource name suffix: <fullname>-<key>.
+    ## Every entry accepts .labels, .annotations, and .spec (passed through as-is).
+    ##
+    ## When keda.scaledObjects is non-empty, HPA (autoscaling.enabled) is suppressed
+    ## automatically — KEDA ScaledObjects take ownership of workload scaling.
+    ##
+    keda:
+
+      ## @param keda.scaledObjects Dict of ScaledObject CRs to create (keda.sh/v1alpha1, namespaced)
+      ## Suppresses HPA when non-empty.
+      ## Example:
+      ##   scaledObjects:
+      ##     main:
+      ##       labels: {}
+      ##       annotations: {}
+      ##       spec:
+      ##         scaleTargetRef:
+      ##           name: my-deployment
+      ##         minReplicaCount: 1
+      ##         maxReplicaCount: 10
+      ##         triggers:
+      ##           - type: cpu
+      ##             metricType: Utilization
+      ##             metadata:
+      ##               value: "70"
+      ##
+      scaledObjects: {}
+
+      ## @param keda.scaledJobs Dict of ScaledJob CRs to create (keda.sh/v1alpha1, namespaced)
+      ## Example:
+      ##   scaledJobs:
+      ##     queue-worker:
+      ##       spec:
+      ##         jobTargetRef:
+      ##           parallelism: 1
+      ##           completions: 1
+      ##           template:
+      ##             spec:
+      ##               containers:
+      ##                 - name: worker
+      ##                   image: busybox
+      ##         triggers:
+      ##           - type: rabbitmq
+      ##             metadata:
+      ##               queueName: tasks
+      ##               mode: QueueLength
+      ##               value: "5"
+      ##
+      scaledJobs: {}
+
+      ## @param keda.triggerAuthentications Dict of TriggerAuthentication CRs (keda.sh/v1alpha1, namespaced)
+      ## Referenced by ScaledObjects/ScaledJobs in the same namespace.
+      ## Example:
+      ##   triggerAuthentications:
+      ##     aws-auth:
+      ##       spec:
+      ##         secretTargetRef:
+      ##           - parameter: awsAccessKeyID
+      ##             name: keda-aws-secret
+      ##             key: AWS_ACCESS_KEY_ID
+      ##           - parameter: awsSecretAccessKey
+      ##             name: keda-aws-secret
+      ##             key: AWS_SECRET_ACCESS_KEY
+      ##
+      triggerAuthentications: {}
+
+      ## @param keda.clusterTriggerAuthentications Dict of ClusterTriggerAuthentication CRs (keda.sh/v1alpha1, cluster-scoped)
+      ## Referenced by ScaledObjects/ScaledJobs across all namespaces.
+      ## Example:
+      ##   clusterTriggerAuthentications:
+      ##     shared-aws-auth:
+      ##       spec:
+      ##         secretTargetRef:
+      ##           - parameter: awsAccessKeyID
+      ##             name: keda-aws-secret
+      ##             key: AWS_ACCESS_KEY_ID
+      ##
+      clusterTriggerAuthentications: {}
+
+    ## GCP — Google Kubernetes Engine specific resources
+    ## ref: https://cloud.google.com/kubernetes-engine/docs/how-to/ingress-configuration
+    ##
+    ## All resource dicts are disabled by default (empty = no resources rendered).
+    ## Each dict key becomes the resource name suffix: <fullname>-<key>.
+    ## Every entry accepts .labels, .annotations, and .spec (passed through as-is).
+    ##
+    gcp:
+
+      ## @param gcp.backendConfigs Dict of BackendConfig CRs to create (cloud.google.com/v1, namespaced)
+      ## Configures GKE backend behavior per Service port: CDN, security policies,
+      ## IAP, connection draining, timeouts, and custom health checks.
+      ## Associate with a Service via annotation:
+      ##   cloud.google.com/backend-config: '{"default": "<fullname>-<key>"}'
+      ## Example:
+      ##   backendConfigs:
+      ##     cdn:
+      ##       spec:
+      ##         cdn:
+      ##           enabled: true
+      ##           cachePolicy:
+      ##             includeHost: true
+      ##             includeProtocol: true
+      ##             includeQueryString: false
+      ##         timeoutSec: 30
+      ##         connectionDraining:
+      ##           drainingTimeoutSec: 60
+      ##
+      backendConfigs: {}
+
+      ## @param gcp.frontendConfigs Dict of FrontendConfig CRs to create (networking.gke.io/v1beta1, namespaced)
+      ## Configures GKE Ingress frontend behavior: SSL policies and HTTP-to-HTTPS redirects.
+      ## Associate with an Ingress via annotation:
+      ##   networking.gke.io/v1beta1.FrontendConfig: <fullname>-<key>
+      ## Example:
+      ##   frontendConfigs:
+      ##     redirect:
+      ##       spec:
+      ##         redirectToHttps:
+      ##           enabled: true
+      ##           responseCodeName: MOVED_PERMANENTLY_DEFAULT
+      ##         sslPolicy: my-ssl-policy
+      ##
+      frontendConfigs: {}
+
+      ## @param gcp.managedCertificates Dict of ManagedCertificate CRs to create (networking.gke.io/v1, namespaced)
+      ## GCP-managed TLS certificates — GKE provisions and renews them automatically.
+      ## Associate with an Ingress via annotation:
+      ##   networking.gke.io/managed-certificates: <fullname>-<key>
+      ## Example:
+      ##   managedCertificates:
+      ##     app-cert:
+      ##       spec:
+      ##         domains:
+      ##           - app.example.com
+      ##           - www.app.example.com
+      ##
+      managedCertificates: {}
+
+    ## ────────────────────────────────────────────────────────────────────────
+    ## AWS EKS-specific resource configuration
+    ## Each dict key becomes the resource name suffix: <fullname>-<key>.
+    ## Every entry accepts .labels, .annotations, and .spec (passed through as-is).
+    ##
+    aws:
+
+      ## @param aws.eniConfigs Dict of ENIConfig CRs to create (crd.k8s.amazonaws.com/v1alpha1, cluster-scoped)
+      ## Enables custom networking in EKS — maps an availability zone to a
+      ## specific subnet and security groups for secondary pod ENIs.
+      ## Requires AWS_VPC_K8S_CNI_CUSTOM_NETWORK_CFG=true on the aws-node DaemonSet.
+      ## Example:
+      ##   eniConfigs:
+      ##     us-east-1a:
+      ##       spec:
+      ##         securityGroups:
+      ##           - sg-0123456789abcdef0
+      ##         subnet: subnet-0123456789abcdef0
+      ##
+      eniConfigs: {}
+
+      ## @param aws.ingressClassParams Dict of IngressClassParams CRs to create (elbv2.k8s.aws/v1beta1, cluster-scoped)
+      ## Configures the AWS Load Balancer Controller ingress class:
+      ## scheme, IP address type, load balancer attributes, tags, etc.
+      ## Reference from an IngressClass via:
+      ##   spec.parameters.apiGroup: elbv2.k8s.aws
+      ##   spec.parameters.kind: IngressClassParams
+      ##   spec.parameters.name: <fullname>-<key>
+      ## Example:
+      ##   ingressClassParams:
+      ##     public:
+      ##       spec:
+      ##         scheme: internet-facing
+      ##         ipAddressType: ipv4
+      ##         tags:
+      ##           - key: Environment
+      ##             value: prod
+      ##
+      ingressClassParams: {}
+
+      ## @param aws.targetGroupBindings Dict of TargetGroupBinding CRs to create (elbv2.k8s.aws/v1beta1, namespaced)
+      ## Binds a Kubernetes Service to an existing AWS Target Group, allowing
+      ## an ALB/NLB managed outside Kubernetes to route traffic to pod IPs.
+      ## Example:
+      ##   targetGroupBindings:
+      ##     web:
+      ##       spec:
+      ##         serviceRef:
+      ##           name: my-service
+      ##           port: 80
+      ##         targetGroupARN: arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/my-tg/abc123
+      ##         targetType: ip
+      ##         networking:
+      ##           ingress:
+      ##             - from:
+      ##                 - securityGroup:
+      ##                     groupID: sg-0123456789abcdef0
+      ##               ports:
+      ##                 - port: 80
+      ##
+      targetGroupBindings: {}
+
+      ## @param aws.securityGroupPolicies Dict of SecurityGroupPolicy CRs to create (vpcresources.k8s.aws/v1beta1, namespaced)
+      ## Assigns AWS Security Groups to pods matching a label selector.
+      ## Requires ENABLE_POD_ENI=true on the aws-node DaemonSet and the
+      ## VPC Resource Controller add-on.
+      ## Example:
+      ##   securityGroupPolicies:
+      ##     app:
+      ##       spec:
+      ##         podSelector:
+      ##           matchLabels:
+      ##             app: my-app
+      ##         securityGroups:
+      ##           groupIds:
+      ##             - sg-0123456789abcdef0
+      ##
+      securityGroupPolicies: {}
+
+    ## ────────────────────────────────────────────────────────────────────────
+    ## Kubernetes Gateway API resource configuration
+    ## Each dict key becomes the resource name suffix: <fullname>-<key>.
+    ## Every entry accepts .labels, .annotations, and .spec (passed through as-is).
+    ##
+    apiGateway:
+
+      ## @param apiGateway.gateways Dict of Gateway CRs to create (gateway.networking.k8s.io/v1, namespaced)
+      ## Defines cluster entry points — binds a GatewayClass to listeners
+      ## (port, protocol, hostname, TLS config).
+      ## Example:
+      ##   gateways:
+      ##     main:
+      ##       spec:
+      ##         gatewayClassName: nginx
+      ##         listeners:
+      ##           - name: http
+      ##             protocol: HTTP
+      ##             port: 80
+      ##           - name: https
+      ##             protocol: HTTPS
+      ##             port: 443
+      ##             tls:
+      ##               certificateRefs:
+      ##                 - name: my-cert
+      ##
+      gateways: {}
+
+      ## @param apiGateway.httpRoutes Dict of HTTPRoute CRs to create (gateway.networking.k8s.io/v1, namespaced)
+      ## Defines HTTP/HTTPS routing rules: path matching, header matching,
+      ## traffic splitting, redirects, and URL rewrites.
+      ## Example:
+      ##   httpRoutes:
+      ##     main:
+      ##       spec:
+      ##         parentRefs:
+      ##           - name: my-gateway
+      ##         hostnames:
+      ##           - app.example.com
+      ##         rules:
+      ##           - matches:
+      ##               - path:
+      ##                   type: PathPrefix
+      ##                   value: /
+      ##             backendRefs:
+      ##               - name: my-service
+      ##                 port: 80
+      ##
+      httpRoutes: {}
+
+      ## @param apiGateway.tlsRoutes Dict of TLSRoute CRs to create (gateway.networking.k8s.io/v1alpha2, namespaced)
+      ## Defines TLS passthrough routing by SNI hostname — forwards TCP without
+      ## terminating TLS at the gateway.
+      ## Example:
+      ##   tlsRoutes:
+      ##     passthrough:
+      ##       spec:
+      ##         parentRefs:
+      ##           - name: my-gateway
+      ##         hostnames:
+      ##           - db.example.com
+      ##         rules:
+      ##           - backendRefs:
+      ##               - name: my-db-service
+      ##                 port: 5432
+      ##
+      tlsRoutes: {}
+
+      ## @param apiGateway.tcpRoutes Dict of TCPRoute CRs to create (gateway.networking.k8s.io/v1alpha2, namespaced)
+      ## Defines raw TCP routing rules — forwards connections without
+      ## protocol-level inspection.
+      ## Example:
+      ##   tcpRoutes:
+      ##     redis:
+      ##       spec:
+      ##         parentRefs:
+      ##           - name: my-gateway
+      ##             sectionName: tcp
+      ##         rules:
+      ##           - backendRefs:
+      ##               - name: redis-service
+      ##                 port: 6379
+      ##
+      tcpRoutes: {}
+
+      ## @param apiGateway.grpcRoutes Dict of GRPCRoute CRs to create (gateway.networking.k8s.io/v1, namespaced)
+      ## Defines gRPC routing rules — matching by service/method names,
+      ## header matching, and traffic splitting.
+      ## Example:
+      ##   grpcRoutes:
+      ##     main:
+      ##       spec:
+      ##         parentRefs:
+      ##           - name: my-gateway
+      ##         hostnames:
+      ##           - grpc.example.com
+      ##         rules:
+      ##           - matches:
+      ##               - method:
+      ##                   service: com.example.MyService
+      ##             backendRefs:
+      ##               - name: grpc-service
+      ##                 port: 9090
+      ##
+      grpcRoutes: {}
+
+    ## Pod Disruption Budget configuration
+    ## ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
+    ##
+    pdb:
+      ## @param pdb.create Created a PodDisruptionBudget
+      ##
+      create: true
+      ## @param pdb.minAvailable Min number of pods that must still be available after the eviction.
+      ## You can specify an integer or a percentage by setting the value to a string representation of a percentage (eg. "50%"). It will be disabled if set to 0
+      ##
+      minAvailable: ""
+      ## @param pdb.maxUnavailable Max number of pods that can be unavailable after the eviction.
+      ## You can specify an integer or a percentage by setting the value to a string representation of a percentage (eg. "50%"). It will be disabled if set to 0. Defaults to `1` if both `pdb.minAvailable` and `pdb.maxUnavailable` are empty.
+      ##
+      maxUnavailable: ""
+
+  ## @section Production preset
+  ## Values tuned to Naviteq internal best practices for production workloads.
+  ## Consumer charts can selectively copy/override these into their own values.
+  ##
+  ## Usage in a consumer chart's values.yaml:
+  ##   replicaCount: 2              # from production preset
+  ##   resources:
+  ##     requests:
+  ##       cpu: 100m                # MUST be set explicitly per workload
+  ##       memory: 128Mi            # MUST be set explicitly per workload
+  ##
+  production:
+    ## At least 2 replicas for high availability
+    replicaCount: 2
+
+    ## Keep less history in etcd for production
+    revisionHistoryLimit: 5
+
+    ## Hard anti-affinity ensures pods land on different nodes
+    podAntiAffinityPreset: hard
+
+    ## Rolling update with zero downtime
+    updateStrategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+
+    ## Graceful shutdown window
+    terminationGracePeriodSeconds: 60
+
+    ## Run containers as non-root by default
+    podSecurityContext:
+      enabled: true
+      fsGroup: 1001
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+
+    containerSecurityContext:
+      enabled: true
+      runAsUser: 1001
+      runAsNonRoot: true
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+
+    ## PDB: always keep at least 1 pod available
+    pdb:
+      create: true
+      minAvailable: 1
+      maxUnavailable: ""
+
+    ## Conservative HPA thresholds to avoid thrashing
+    autoscaling:
+      enabled: false
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPU: 70
+      targetMemory: 80
+      metrics: []
+
+    ## Enable liveness / readiness probes — configure per-workload
+    livenessProbe:
+      enabled: false
+
+    readinessProbe:
+      enabled: false
+
+    startupProbe:
+      enabled: false
+
+    ## Resources MUST be set per workload — no defaults provided intentionally.
+    ## Helm will fail if resources.requests.memory or resources.requests.cpu are missing.
+    ## resources:
+    ##   requests:
+    ##     cpu: 100m
+    ##     memory: 128Mi
+    ##   limits:
+    ##     cpu: 500m
+    ##     memory: 512Mi
