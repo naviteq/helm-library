@@ -1,0 +1,55 @@
+suite: ConfigMap, Secret and HPA
+templates:
+  - app.yaml
+
+# With ../ci/01-defaults.yaml: 3 docs (Deployment + PDB + Service)
+# With ../ci/03-full.yaml:     12 docs
+
+tests:
+  - it: no ConfigMap without data
+    values:
+      - ../ci/01-defaults.yaml
+    asserts:
+      - hasDocuments:
+          count: 3
+
+  - it: ConfigMap renders when data is provided
+    values:
+      - ../ci/03-full.yaml
+    asserts:
+      - containsDocument:
+          kind: ConfigMap
+          apiVersion: v1
+          any: true
+
+  - it: no Secret by default
+    values:
+      - ../ci/01-defaults.yaml
+    asserts:
+      - hasDocuments:
+          count: 3
+
+  - it: Secret renders with stringData
+    values:
+      - ../ci/03-full.yaml
+    asserts:
+      - containsDocument:
+          kind: Secret
+          apiVersion: v1
+          any: true
+
+  - it: no HPA by default
+    values:
+      - ../ci/01-defaults.yaml
+    asserts:
+      - hasDocuments:
+          count: 3
+
+  - it: HPA renders when autoscaling is enabled
+    values:
+      - ../ci/03-full.yaml
+    asserts:
+      - containsDocument:
+          kind: HorizontalPodAutoscaler
+          apiVersion: autoscaling/v2
+          any: true

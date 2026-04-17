@@ -1,0 +1,6 @@
+dependencies:
+- name: naviteq-library-chart
+  repository: file://../chart
+  version: 0.0.1
+digest: sha256:cb8b85f1e4f827360c595355768898e22813d1b9e12eef4d4ff49662903d9d3c
+generated: "2026-03-18T20:10:23.944393+07:00"

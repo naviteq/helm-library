@@ -1,0 +1,22 @@
+---
+name: Helm Release
+
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  helm:
+    uses: naviteq/github-actions/.github/workflows/helm-release-github.yaml@66a8f17eef9efa5a6147b0f98182515481446513
+    with:
+      chart_path: chart
+      ghcr_repo: ${{ github.repository }}
+      bump_version_git_branch: main
+    secrets:
+      GITHUB_APP_ID: ${{ secrets.NAVITEQ_GITHUB_APP_ID }}
+      GITHUB_APP_KEY: ${{ secrets.NAVITEQ_GITHUB_APP_KEY }}
+      token: ${{ secrets.GITHUB_TOKEN }}

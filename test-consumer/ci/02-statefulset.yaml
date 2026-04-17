@@ -1,0 +1,22 @@
+# StatefulSet mode with a persistent volume
+image:
+  repository: nginx
+  tag: "latest"
+
+resources:
+  requests:
+    memory: 128Mi
+    cpu: 100m
+
+statefulSet:
+  enabled: true
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      mountPath: /data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi

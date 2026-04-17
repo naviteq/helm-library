@@ -1,0 +1,81 @@
+# ============================================================
+# ci/07-aws.yaml — AWS EKS-specific resources
+# Exercises all AWS resource types: ENIConfig, IngressClassParams,
+# TargetGroupBinding, SecurityGroupPolicy.
+#
+# Document order (7 total):
+#   0  Deployment
+#   1  PodDisruptionBudget
+#   2  Service
+#   3  ENIConfig          (us-east-1a)   — cluster-scoped
+#   4  IngressClassParams (public)       — cluster-scoped
+#   5  TargetGroupBinding (web)          — namespaced
+#   6  SecurityGroupPolicy (app)         — namespaced
+# ============================================================
+
+image:
+  repository: nginx
+  tag: "latest"
+
+resources:
+  requests:
+    memory: 128Mi
+    cpu: 100m
+
+aws:
+
+  # ── ENIConfigs ────────────────────────────────────────────
+  eniConfigs:
+    us-east-1a:
+      labels:
+        aws-managed: "true"
+      annotations:
+        managed-by: helm
+      spec:
+        securityGroups:
+          - sg-0123456789abcdef0
+        subnet: subnet-0123456789abcdef0
+
+  # ── IngressClassParams ────────────────────────────────────
+  ingressClassParams:
+    public:
+      labels:
+        aws-managed: "true"
+      spec:
+        scheme: internet-facing
+        ipAddressType: ipv4
+        tags:
+          - key: Environment
+            value: prod
+
+  # ── TargetGroupBindings ───────────────────────────────────
+  targetGroupBindings:
+    web:
+      labels:
+        aws-managed: "true"
+      spec:
+        serviceRef:
+          name: my-service
+          port: 80
+        targetGroupARN: arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/my-tg/1234567890abcdef
+        targetType: ip
+        networking:
+          ingress:
+            - from:
+                - securityGroup:
+                    groupID: sg-0123456789abcdef0
+              ports:
+                - port: 80
+
+  # ── SecurityGroupPolicies ─────────────────────────────────
+  securityGroupPolicies:
+    app:
+      labels:
+        aws-managed: "true"
+      spec:
+        podSelector:
+          matchLabels:
+            app: my-app
+        securityGroups:
+          groupIds:
+            - sg-0123456789abcdef0

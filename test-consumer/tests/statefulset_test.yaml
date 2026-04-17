@@ -1,0 +1,38 @@
+suite: StatefulSet
+templates:
+  - app.yaml
+
+# With ../ci/02-statefulset.yaml the document order is:
+#   0 - StatefulSet, 1 - PodDisruptionBudget, 2 - Service
+
+tests:
+  - it: renders a StatefulSet when enabled
+    values:
+      - ../ci/02-statefulset.yaml
+    asserts:
+      - hasDocuments:
+          count: 3
+      - isKind:
+          of: StatefulSet
+        documentIndex: 0
+
+  - it: has correct volumeClaimTemplates
+    values:
+      - ../ci/02-statefulset.yaml
+    asserts:
+      - equal:
+          path: spec.volumeClaimTemplates[0].metadata.name
+          value: data
+        documentIndex: 0
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts[0].mountPath
+          value: /data
+        documentIndex: 0
+
+  - it: fails without resources when statefulSet is enabled
+    set:
+      image.repository: nginx
+      statefulSet.enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: "resources.requests.memory is required"

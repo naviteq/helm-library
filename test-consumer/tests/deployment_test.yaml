@@ -1,0 +1,72 @@
+suite: Deployment
+templates:
+  - app.yaml
+
+# With ../ci/01-defaults.yaml the document order is:
+#   0 - Deployment, 1 - PodDisruptionBudget, 2 - Service
+
+tests:
+  - it: renders a Deployment with minimal values
+    values:
+      - ../ci/01-defaults.yaml
+    asserts:
+      - hasDocuments:
+          count: 3
+      - isKind:
+          of: Deployment
+        documentIndex: 0
+      - equal:
+          path: spec.replicas
+          value: 1
+        documentIndex: 0
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: docker.io/nginx:latest
+        documentIndex: 0
+      - equal:
+          path: spec.template.spec.containers[0].resources.requests.memory
+          value: 128Mi
+        documentIndex: 0
+
+  - it: replica count is configurable
+    values:
+      - ../ci/01-defaults.yaml
+    set:
+      replicaCount: 3
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 3
+        documentIndex: 0
+
+  - it: does not render without image.repository
+    values:
+      - ../ci/01-defaults.yaml
+    set:
+      image.repository: ""
+    asserts:
+      - hasDocuments:
+          count: 2  # PDB + Service only
+
+  - it: renders StatefulSet instead of Deployment when statefulSet is enabled
+    values:
+      - ../ci/02-statefulset.yaml
+    asserts:
+      - isKind:
+          of: StatefulSet
+        documentIndex: 0
+
+  - it: fails without resources.requests.memory
+    set:
+      image.repository: nginx
+    asserts:
+      - failedTemplate:
+          errorMessage: "resources.requests.memory is required"
+
+  - it: fails without resources.requests.cpu
+    set:
+      image.repository: nginx
+      resources.requests.memory: 128Mi
+    asserts:
+      - failedTemplate:
+          errorMessage: "resources.requests.cpu is required"

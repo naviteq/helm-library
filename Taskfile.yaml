@@ -1,0 +1,67 @@
+version: "3"
+
+vars:
+  CHART_DIR: chart
+  CONSUMER_DIR: test-consumer
+  K8S_VERSION: '{{.K8S_VERSION | default "1.34.0"}}'
+  CRD_SCHEMA: https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{`{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json`}}
+
+tasks:
+  setup:
+    desc: Download all chart dependencies
+    cmds:
+      - helm dependency update {{.CHART_DIR}}
+      - helm dependency update {{.CONSUMER_DIR}}
+
+  lint:
+    desc: Lint the library chart
+    cmds:
+      - helm lint {{.CHART_DIR}}
+
+  unit-test:
+    desc: Run helm-unittest suites
+    cmds:
+      - helm unittest {{.CONSUMER_DIR}}
+
+  validate:
+    desc: Validate rendered YAML against Kubernetes schemas (kubeconform)
+    vars:
+      KUBECONFORM_ARGS: -strict -kubernetes-version {{.K8S_VERSION}} -summary
+      CRD_ARGS: -schema-location default -schema-location '{{.CRD_SCHEMA}}'
+    cmds:
+      - echo "==> Validating ci/01-defaults.yaml"
+      - helm template test-app {{.CONSUMER_DIR}} -f {{.CONSUMER_DIR}}/ci/01-defaults.yaml
+          | kubeconform {{.KUBECONFORM_ARGS}}
+      - echo "==> Validating ci/02-statefulset.yaml"
+      - helm template test-app {{.CONSUMER_DIR}} -f {{.CONSUMER_DIR}}/ci/02-statefulset.yaml
+          | kubeconform {{.KUBECONFORM_ARGS}}
+      - echo "==> Validating ci/03-full.yaml"
+      - helm template test-app {{.CONSUMER_DIR}} -f {{.CONSUMER_DIR}}/ci/03-full.yaml
+          | kubeconform {{.KUBECONFORM_ARGS}} {{.CRD_ARGS}}
+      - echo "==> Validating ci/04-eso.yaml"
+      - helm template test-app {{.CONSUMER_DIR}} -f {{.CONSUMER_DIR}}/ci/04-eso.yaml
+          | kubeconform {{.KUBECONFORM_ARGS}} {{.CRD_ARGS}}
+      - echo "==> Validating ci/05-keda.yaml"
+      - helm template test-app {{.CONSUMER_DIR}} -f {{.CONSUMER_DIR}}/ci/05-keda.yaml
+          | kubeconform {{.KUBECONFORM_ARGS}} {{.CRD_ARGS}}
+      - echo "==> Validating ci/06-gcp.yaml"
+      - helm template test-app {{.CONSUMER_DIR}} -f {{.CONSUMER_DIR}}/ci/06-gcp.yaml
+          | kubeconform {{.KUBECONFORM_ARGS}} {{.CRD_ARGS}}
+      - echo "==> Validating ci/07-aws.yaml"
+      - helm template test-app {{.CONSUMER_DIR}} -f {{.CONSUMER_DIR}}/ci/07-aws.yaml
+          | kubeconform {{.KUBECONFORM_ARGS}} {{.CRD_ARGS}}
+      - echo "==> Validating ci/08-gateway.yaml"
+      - helm template test-app {{.CONSUMER_DIR}} -f {{.CONSUMER_DIR}}/ci/08-gateway.yaml
+          | kubeconform {{.KUBECONFORM_ARGS}} {{.CRD_ARGS}}
+
+  test:
+    desc: Run lint + unit tests + schema validation
+    cmds:
+      - task: lint
+      - task: unit-test
+      - task: validate
+
+  template:
+    desc: Render all templates with full values (visual inspection)
+    cmds:
+      - helm template test-app {{.CONSUMER_DIR}} -f {{.CONSUMER_DIR}}/ci/03-full.yaml

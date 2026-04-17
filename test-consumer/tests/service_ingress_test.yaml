@@ -1,0 +1,52 @@
+suite: Service and Ingress
+templates:
+  - app.yaml
+
+# With ../ci/01-defaults.yaml the document order is:
+#   0 - Deployment, 1 - PodDisruptionBudget, 2 - Service
+
+tests:
+  - it: Service always renders with default port 80
+    values:
+      - ../ci/01-defaults.yaml
+    asserts:
+      - isKind:
+          of: Service
+        documentIndex: 2
+      - equal:
+          path: spec.ports[0].port
+          value: 80
+        documentIndex: 2
+
+  - it: PodDisruptionBudget renders by default
+    values:
+      - ../ci/01-defaults.yaml
+    asserts:
+      - isKind:
+          of: PodDisruptionBudget
+        documentIndex: 1
+
+  - it: no Ingress rendered by default
+    values:
+      - ../ci/01-defaults.yaml
+    asserts:
+      - hasDocuments:
+          count: 3  # Deployment + PDB + Service, no Ingress
+
+  - it: Ingress renders when enabled
+    values:
+      - ../ci/03-full.yaml
+    asserts:
+      - containsDocument:
+          kind: Ingress
+          apiVersion: networking.k8s.io/v1
+          any: true
+
+  - it: PDB not rendered when pdb.create is false
+    values:
+      - ../ci/01-defaults.yaml
+    set:
+      pdb.create: false
+    asserts:
+      - hasDocuments:
+          count: 2  # Deployment + Service only

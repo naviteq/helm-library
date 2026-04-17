@@ -1,0 +1,9 @@
+# Minimal values — only required fields, everything else uses library defaults
+image:
+  repository: nginx
+  tag: "latest"
+
+resources:
+  requests:
+    memory: 128Mi
+    cpu: 100m
