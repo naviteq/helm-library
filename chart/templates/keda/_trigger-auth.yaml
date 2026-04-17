@@ -1,0 +1,19 @@
+{{/*
+Render TriggerAuthentication CRs from .Values.keda.triggerAuthentications dict.
+Each key becomes a resource named <fullname>-<key>.
+Namespace-scoped; referenced by ScaledObjects/ScaledJobs in the same namespace.
+
+apiVersion: keda.sh/v1alpha1
+ref: https://keda.sh/docs/latest/concepts/authentication/
+*/}}
+{{- define "library.triggerAuthentications" -}}
+{{- range $name, $ta := .Values.keda.triggerAuthentications }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        $ta
+  "kind"       "TriggerAuthentication"
+  "apiVersion" "keda.sh/v1alpha1"
+  "namespaced" true
+  "context"    $) }}
+{{- end }}
+{{- end -}}

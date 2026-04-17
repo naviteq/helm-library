@@ -1,0 +1,29 @@
+{{- define "library.configMap" -}}
+{{- range $name, $cm := .Values.configMaps }}
+{{- if $cm.data }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "common.names.fullname" $ }}-{{ $name }}
+  namespace: {{ include "common.names.namespace" $ | quote }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" $.Values.commonLabels "context" $ ) | nindent 4 }}
+    {{- if $cm.labels }}
+    {{- include "common.tplvalues.render" ( dict "value" $cm.labels "context" $ ) | nindent 4 }}
+    {{- end }}
+  {{- if or $.Values.commonAnnotations $cm.annotations }}
+  annotations:
+    {{- if $.Values.commonAnnotations }}
+    {{- include "common.tplvalues.render" ( dict "value" $.Values.commonAnnotations "context" $ ) | nindent 4 }}
+    {{- end }}
+    {{- if $cm.annotations }}
+    {{- include "common.tplvalues.render" ( dict "value" $cm.annotations "context" $ ) | nindent 4 }}
+    {{- end }}
+  {{- end }}
+{{- with $cm.data }}
+data:
+  {{- . | toYaml | nindent 2 }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
