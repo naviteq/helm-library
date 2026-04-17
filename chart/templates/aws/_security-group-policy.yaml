@@ -1,0 +1,21 @@
+{{/*
+Render SecurityGroupPolicy CRs from .Values.aws.securityGroupPolicies dict.
+Each key becomes a resource named <fullname>-<key>.
+SecurityGroupPolicies assign AWS Security Groups to pods matching a label
+selector. Requires the VPC Resource Controller add-on and ENABLE_POD_ENI=true
+on the aws-node DaemonSet.
+
+apiVersion: vpcresources.k8s.aws/v1beta1
+ref: https://github.com/aws/amazon-vpc-resource-controller-k8s
+*/}}
+{{- define "library.securityGroupPolicies" -}}
+{{- range $name, $sgp := .Values.aws.securityGroupPolicies }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        $sgp
+  "kind"       "SecurityGroupPolicy"
+  "apiVersion" "vpcresources.k8s.aws/v1beta1"
+  "namespaced" true
+  "context"    $) }}
+{{- end }}
+{{- end -}}
