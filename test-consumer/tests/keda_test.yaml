@@ -1,0 +1,139 @@
+suite: KEDA — Kubernetes Event-driven Autoscaling
+templates:
+  - app.yaml
+
+# With ../ci/01-defaults.yaml: 3 docs  (Deployment + PDB + Service), no KEDA
+# With ../ci/05-keda.yaml:     7 docs  (3 baseline + 4 KEDA resources, HPA suppressed)
+#   ScaledObject, ScaledJob, TriggerAuthentication, ClusterTriggerAuthentication
+
+tests:
+  # ── Absence checks (no KEDA resources in the default scenario) ──────────
+
+  - it: no KEDA resources rendered by default
+    values:
+      - ../ci/01-defaults.yaml
+    asserts:
+      - hasDocuments:
+          count: 3  # Deployment + PDB + Service only
+
+  # ── HPA suppression ─────────────────────────────────────────────────────
+
+  - it: HPA is suppressed when ScaledObjects are defined
+    values:
+      - ../ci/05-keda.yaml
+    asserts:
+      - hasDocuments:
+          count: 7  # no HPA despite autoscaling.enabled: true
+
+  # ── ScaledObject ────────────────────────────────────────────────────────
+
+  - it: ScaledObject renders from keda.scaledObjects dict
+    values:
+      - ../ci/05-keda.yaml
+    asserts:
+      - containsDocument:
+          kind: ScaledObject
+          apiVersion: keda.sh/v1alpha1
+          any: true
+
+  - it: ScaledObject has correct name
+    values:
+      - ../ci/05-keda.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: release-name-test-consumer-main
+        documentIndex: 3
+
+  - it: ScaledObject has correct kind and apiVersion
+    values:
+      - ../ci/05-keda.yaml
+    asserts:
+      - equal:
+          path: kind
+          value: ScaledObject
+        documentIndex: 3
+      - equal:
+          path: apiVersion
+          value: keda.sh/v1alpha1
+        documentIndex: 3
+
+  - it: ScaledObject spec is rendered correctly
+    values:
+      - ../ci/05-keda.yaml
+    asserts:
+      - equal:
+          path: spec.minReplicaCount
+          value: 1
+        documentIndex: 3
+      - equal:
+          path: spec.maxReplicaCount
+          value: 10
+        documentIndex: 3
+
+  # ── ScaledJob ───────────────────────────────────────────────────────────
+
+  - it: ScaledJob renders from keda.scaledJobs dict
+    values:
+      - ../ci/05-keda.yaml
+    asserts:
+      - containsDocument:
+          kind: ScaledJob
+          apiVersion: keda.sh/v1alpha1
+          any: true
+
+  - it: ScaledJob has correct name
+    values:
+      - ../ci/05-keda.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: release-name-test-consumer-queue-worker
+        documentIndex: 4
+
+  # ── TriggerAuthentication ───────────────────────────────────────────────
+
+  - it: TriggerAuthentication renders from keda.triggerAuthentications dict
+    values:
+      - ../ci/05-keda.yaml
+    asserts:
+      - containsDocument:
+          kind: TriggerAuthentication
+          apiVersion: keda.sh/v1alpha1
+          any: true
+
+  - it: TriggerAuthentication is namespace-scoped
+    values:
+      - ../ci/05-keda.yaml
+    asserts:
+      - isNotNull:
+          path: metadata.namespace
+        documentIndex: 5
+
+  # ── ClusterTriggerAuthentication ────────────────────────────────────────
+
+  - it: ClusterTriggerAuthentication renders from keda.clusterTriggerAuthentications dict
+    values:
+      - ../ci/05-keda.yaml
+    asserts:
+      - containsDocument:
+          kind: ClusterTriggerAuthentication
+          apiVersion: keda.sh/v1alpha1
+          any: true
+
+  - it: ClusterTriggerAuthentication is cluster-scoped (no namespace)
+    values:
+      - ../ci/05-keda.yaml
+    asserts:
+      - notExists:
+          path: metadata.namespace
+        documentIndex: 6
+
+  # ── Total document count ────────────────────────────────────────────────
+
+  - it: renders all 7 documents with full KEDA values
+    values:
+      - ../ci/05-keda.yaml
+    asserts:
+      - hasDocuments:
+          count: 7

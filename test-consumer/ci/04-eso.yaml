@@ -1,0 +1,326 @@
+# ============================================================
+# ci/04-eso.yaml — External Secrets Operator resources
+# Exercises all ESO resource types: ExternalSecret, SecretStore,
+# ClusterSecretStore, ClusterExternalSecret, PushSecret,
+# ClusterPushSecret, and all 12 generator types.
+#
+# Document order (22 total):
+#   0  Deployment
+#   1  PodDisruptionBudget
+#   2  Service
+#   3  ExternalSecret          (app-secret)
+#   4  SecretStore             (aws-store)
+#   5  ClusterSecretStore      (cluster-aws-store)
+#   6  ClusterExternalSecret   (shared-config)
+#   7  PushSecret              (push-to-vault)
+#   8  ClusterPushSecret       (push-cluster-secret)
+#   9  ACRAccessToken          (my-acr)
+#  10  ECRAuthorizationToken   (my-ecr)
+#  11  STSSessionToken         (my-sts)
+#  12  ClusterGenerator        (my-cluster-gen)
+#  13  GCRAccessToken          (my-gcr)
+#  14  GithubAccessToken       (my-github)
+#  15  VaultDynamicSecret      (my-vault)
+#  16  Webhook                 (my-webhook)
+#  17  Password                (app-password)
+#  18  MFA                     (app-mfa)
+#  19  SSHKey                  (deploy-key)
+#  20  Fake                    (mock-secret)
+#  21  UUID                    (request-id)
+# ============================================================
+
+image:
+  repository: nginx
+  tag: "latest"
+
+resources:
+  requests:
+    memory: 128Mi
+    cpu: 100m
+
+# ── ExternalSecrets ───────────────────────────────────────────
+eso:
+  externalSecrets:
+    app-secret:
+      labels:
+        eso-managed: "true"
+      annotations:
+        managed-by: helm
+      spec:
+        refreshInterval: "1h"
+        secretStoreRef:
+          name: test-app-aws-store
+          kind: SecretStore
+        target:
+          name: app-secret
+          creationPolicy: Owner
+          deletionPolicy: Retain
+        data:
+          # checkov:skip=CKV_SECRET_6: false positive
+          - secretKey: database-password
+            remoteRef:
+              key: /myapp/prod/database
+              # checkov:skip=CKV_SECRET_6: false positive
+              property: password
+          - secretKey: api-key
+            remoteRef:
+              key: /myapp/prod/api-key
+
+  # ── SecretStores ───────────────────────────────────────────
+  secretStores:
+    aws-store:
+      labels:
+        provider: aws
+      spec:
+        provider:
+          aws:
+            service: SecretsManager
+            region: us-east-1
+            auth:
+              secretRef:
+                accessKeyIDSecretRef:
+                  name: awssm-secret
+                  key: access-key
+                secretAccessKeySecretRef:
+                  name: awssm-secret
+                  key: secret-access-key
+
+  # ── ClusterSecretStores ────────────────────────────────────
+  clusterSecretStores:
+    cluster-aws-store:
+      labels:
+        provider: aws
+        scope: cluster
+      spec:
+        provider:
+          aws:
+            service: SecretsManager
+            region: us-east-1
+            auth:
+              jwt:
+                serviceAccountRef:
+                  name: external-secrets-sa
+                  namespace: external-secrets
+
+  # ── ClusterExternalSecrets ─────────────────────────────────
+  clusterExternalSecrets:
+    shared-config:
+      labels:
+        managed-by: platform
+      spec:
+        namespaceSelector:
+          matchLabels:
+            eso-enabled: "true"
+        refreshTime: "1h"
+        externalSecretSpec:
+          refreshInterval: "1h"
+          secretStoreRef:
+            name: cluster-aws-store
+            kind: ClusterSecretStore
+          target:
+            creationPolicy: Owner
+          data:
+            # checkov:skip=CKV_SECRET_6: false positive
+            - secretKey: shared-key
+              remoteRef:
+                key: /shared/config
+
+  # ── PushSecrets ────────────────────────────────────────────
+  pushSecrets:
+    push-to-vault:
+      labels:
+        direction: push
+      spec:
+        refreshInterval: "1h"
+        secretStoreRefs:
+          - name: vault-store
+            kind: SecretStore
+        selector:
+          secret:
+            name: my-app-secret
+        data:
+          - match:
+              secretKey: password
+              remoteRef:
+                remoteKey: myapp/password
+
+  # ── ClusterPushSecrets ─────────────────────────────────────
+  clusterPushSecrets:
+    push-cluster-secret:
+      labels:
+        direction: push
+        scope: cluster
+      spec:
+        namespaceSelectors:
+        - matchLabels:
+            push-enabled: "true"
+        pushSecretSpec:
+          refreshInterval: "2h"
+          secretStoreRefs:
+            - name: cluster-vault-store
+              kind: ClusterSecretStore
+          selector:
+            secret:
+              name: cluster-shared-secret
+          data:
+            - match:
+                # checkov:skip=CKV_SECRET_6: false positive
+                secretKey: shared-token
+                remoteRef:
+                  remoteKey: shared/token
+
+  # ── Generators ─────────────────────────────────────────────
+  generators:
+
+    acrAccessToken:
+      my-acr:
+        labels:
+          generator: acr
+        spec:
+          tenantId: 11111111-2222-3333-4444-111111111111
+          registry: example.azurecr.io
+          auth:
+            managedIdentity:
+              identityId: 11111111-2222-3333-4444-111111111111
+
+    ecrAuthorizationTokens:
+      my-ecr:
+        labels:
+          generator: ecr
+        spec:
+          region: us-east-1
+          auth:
+            secretRef:
+              accessKeyIDSecretRef:
+                name: awssm-secret
+                key: access-key
+              secretAccessKeySecretRef:
+                name: awssm-secret
+                key: secret-access-key
+
+    stsSessionTokens:
+      my-sts:
+        labels:
+          generator: sts
+        spec:
+          region: us-east-1
+          role: arn:aws:iam::123456789012:role/my-role
+          auth:
+            secretRef:
+              accessKeyIDSecretRef:
+                name: awssm-secret
+                key: access-key
+              secretAccessKeySecretRef:
+                name: awssm-secret
+                key: secret-access-key
+
+    clusterGenerators:
+      my-cluster-gen:
+        labels:
+          generator: cluster
+        spec:
+          kind: Password
+          generator:
+            passwordSpec:
+              length: 32
+              digits: 8
+              symbols: 4
+              noUpper: false
+              allowRepeat: true
+
+    gcrAccessTokens:
+      my-gcr:
+        labels:
+          generator: gcr
+        spec:
+          projectID: my-gcp-project
+          auth:
+            workloadIdentity:
+              clusterLocation: us-central1
+              clusterName: my-cluster
+              clusterProjectID: my-gcp-project
+              serviceAccountRef:
+                name: my-k8s-sa
+
+    githubAccessTokens:
+      my-github:
+        labels:
+          generator: github
+        spec:
+          appID: "123456"
+          installID: "78901234"
+          auth:
+            privateKey:
+              secretRef:
+                name: github-app-key
+                key: privateKey
+
+    vaultDynamicSecrets:
+      my-vault:
+        labels:
+          generator: vault
+        spec:
+          path: database/creds/my-role
+          method: GET
+          provider:
+            server: https://vault.example.com
+            auth:
+              kubernetes:
+                mountPath: kubernetes
+                role: my-app
+
+    webhooks:
+      my-webhook:
+        labels:
+          generator: webhook
+        spec:
+          url: https://example.com/generate-secret
+          method: POST
+          result:
+            jsonPath: $.secret
+
+    passwords:
+      app-password:
+        labels:
+          generator: password
+        spec:
+          length: 24
+          digits: 6
+          symbols: 4
+          symbolCharacters: "!@#%^&*"
+          noUpper: false
+          allowRepeat: false
+
+    mfas:
+      app-mfa:
+        labels:
+          generator: mfa
+        spec:
+          secret:
+            name: totp-seed
+            key: seed
+
+    sshKeys:
+      deploy-key:
+        labels:
+          generator: sshkey
+        spec:
+          keyType: ed25519
+
+    fakes:
+      mock-secret:
+        labels:
+          generator: fake
+        spec:
+          data:
+            # checkov:skip=CKV_SECRET_6: fake data
+            username: admin
+            # checkov:skip=CKV_SECRET_6: fake data
+            password: fake-password-for-dev
+            host: localhost
+
+    uuids:
+      request-id:
+        labels:
+          generator: uuid
+        spec: {}

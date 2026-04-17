@@ -1,0 +1,186 @@
+suite: AWS — EKS-specific resources
+templates:
+  - app.yaml
+
+# With ../ci/01-defaults.yaml: 3 docs  (Deployment + PDB + Service), no AWS
+# With ../ci/07-aws.yaml:      7 docs  (3 baseline + 4 AWS resources)
+#   ENIConfig, IngressClassParams, TargetGroupBinding, SecurityGroupPolicy
+
+tests:
+  # ── Absence checks (no AWS resources in the default scenario) ───────────
+
+  - it: no AWS resources rendered by default
+    values:
+      - ../ci/01-defaults.yaml
+    asserts:
+      - hasDocuments:
+          count: 3  # Deployment + PDB + Service only
+
+  # ── ENIConfig ────────────────────────────────────────────────────────────
+
+  - it: ENIConfig renders from aws.eniConfigs dict
+    values:
+      - ../ci/07-aws.yaml
+    asserts:
+      - containsDocument:
+          kind: ENIConfig
+          apiVersion: crd.k8s.amazonaws.com/v1alpha1
+          any: true
+
+  - it: ENIConfig has correct name
+    values:
+      - ../ci/07-aws.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: release-name-test-consumer-us-east-1a
+        documentIndex: 3
+
+  - it: ENIConfig is cluster-scoped (no namespace)
+    values:
+      - ../ci/07-aws.yaml
+    asserts:
+      - isNull:
+          path: metadata.namespace
+        documentIndex: 3
+
+  - it: ENIConfig spec subnet is rendered correctly
+    values:
+      - ../ci/07-aws.yaml
+    asserts:
+      - equal:
+          path: spec.subnet
+          value: subnet-0123456789abcdef0
+        documentIndex: 3
+      - contains:
+          path: spec.securityGroups
+          content: sg-0123456789abcdef0
+        documentIndex: 3
+
+  # ── IngressClassParams ───────────────────────────────────────────────────
+
+  - it: IngressClassParams renders from aws.ingressClassParams dict
+    values:
+      - ../ci/07-aws.yaml
+    asserts:
+      - containsDocument:
+          kind: IngressClassParams
+          apiVersion: elbv2.k8s.aws/v1beta1
+          any: true
+
+  - it: IngressClassParams has correct name
+    values:
+      - ../ci/07-aws.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: release-name-test-consumer-public
+        documentIndex: 4
+
+  - it: IngressClassParams is cluster-scoped (no namespace)
+    values:
+      - ../ci/07-aws.yaml
+    asserts:
+      - isNull:
+          path: metadata.namespace
+        documentIndex: 4
+
+  - it: IngressClassParams scheme is rendered correctly
+    values:
+      - ../ci/07-aws.yaml
+    asserts:
+      - equal:
+          path: spec.scheme
+          value: internet-facing
+        documentIndex: 4
+
+  # ── TargetGroupBinding ───────────────────────────────────────────────────
+
+  - it: TargetGroupBinding renders from aws.targetGroupBindings dict
+    values:
+      - ../ci/07-aws.yaml
+    asserts:
+      - containsDocument:
+          kind: TargetGroupBinding
+          apiVersion: elbv2.k8s.aws/v1beta1
+          any: true
+
+  - it: TargetGroupBinding has correct name
+    values:
+      - ../ci/07-aws.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: release-name-test-consumer-web
+        documentIndex: 5
+
+  - it: TargetGroupBinding is namespace-scoped
+    values:
+      - ../ci/07-aws.yaml
+    asserts:
+      - isNotNull:
+          path: metadata.namespace
+        documentIndex: 5
+
+  - it: TargetGroupBinding spec is rendered correctly
+    values:
+      - ../ci/07-aws.yaml
+    asserts:
+      - equal:
+          path: spec.targetType
+          value: ip
+        documentIndex: 5
+      - equal:
+          path: spec.serviceRef.port
+          value: 80
+        documentIndex: 5
+
+  # ── SecurityGroupPolicy ──────────────────────────────────────────────────
+
+  - it: SecurityGroupPolicy renders from aws.securityGroupPolicies dict
+    values:
+      - ../ci/07-aws.yaml
+    asserts:
+      - containsDocument:
+          kind: SecurityGroupPolicy
+          apiVersion: vpcresources.k8s.aws/v1beta1
+          any: true
+
+  - it: SecurityGroupPolicy has correct name
+    values:
+      - ../ci/07-aws.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: release-name-test-consumer-app
+        documentIndex: 6
+
+  - it: SecurityGroupPolicy is namespace-scoped
+    values:
+      - ../ci/07-aws.yaml
+    asserts:
+      - isNotNull:
+          path: metadata.namespace
+        documentIndex: 6
+
+  - it: SecurityGroupPolicy spec is rendered correctly
+    values:
+      - ../ci/07-aws.yaml
+    asserts:
+      - equal:
+          path: spec.podSelector.matchLabels.app
+          value: my-app
+        documentIndex: 6
+      - contains:
+          path: spec.securityGroups.groupIds
+          content: sg-0123456789abcdef0
+        documentIndex: 6
+
+  # ── Total document count ─────────────────────────────────────────────────
+
+  - it: renders all 7 documents with full AWS values
+    values:
+      - ../ci/07-aws.yaml
+    asserts:
+      - hasDocuments:
+          count: 7

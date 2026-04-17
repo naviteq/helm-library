@@ -1,0 +1,112 @@
+# ============================================================
+# ci/08-gateway.yaml — Kubernetes Gateway API resources
+# Exercises all Gateway API resource types: Gateway, HTTPRoute,
+# TLSRoute, TCPRoute, GRPCRoute.
+#
+# Document order (8 total):
+#   0  Deployment
+#   1  PodDisruptionBudget
+#   2  Service
+#   3  Gateway      (main)
+#   4  HTTPRoute    (web)
+#   5  TLSRoute     (passthrough)
+#   6  TCPRoute     (redis)
+#   7  GRPCRoute    (api)
+# ============================================================
+
+image:
+  repository: nginx
+  tag: "latest"
+
+resources:
+  requests:
+    memory: 128Mi
+    cpu: 100m
+
+apiGateway:
+
+  # ── Gateways ──────────────────────────────────────────────
+  gateways:
+    main:
+      labels:
+        gateway-managed: "true"
+      annotations:
+        managed-by: helm
+      spec:
+        gatewayClassName: nginx
+        listeners:
+          - name: http
+            protocol: HTTP
+            port: 80
+          - name: https
+            protocol: HTTPS
+            port: 443
+            tls:
+              certificateRefs:
+                - name: my-cert
+
+  # ── HTTPRoutes ────────────────────────────────────────────
+  httpRoutes:
+    web:
+      labels:
+        route-type: http
+      spec:
+        parentRefs:
+          - name: my-gateway
+        hostnames:
+          - app.example.com
+        rules:
+          - matches:
+              - path:
+                  type: PathPrefix
+                  value: /
+            backendRefs:
+              - name: my-service
+                port: 80
+
+  # ── TLSRoutes ─────────────────────────────────────────────
+  tlsRoutes:
+    passthrough:
+      labels:
+        route-type: tls
+      spec:
+        parentRefs:
+          - name: my-gateway
+        hostnames:
+          - db.example.com
+        rules:
+          - backendRefs:
+              - name: my-db-service
+                port: 5432
+
+  # ── TCPRoutes ─────────────────────────────────────────────
+  tcpRoutes:
+    redis:
+      labels:
+        route-type: tcp
+      spec:
+        parentRefs:
+          - name: my-gateway
+            sectionName: tcp
+        rules:
+          - backendRefs:
+              - name: redis-service
+                port: 6379
+
+  # ── GRPCRoutes ────────────────────────────────────────────
+  grpcRoutes:
+    api:
+      labels:
+        route-type: grpc
+      spec:
+        parentRefs:
+          - name: my-gateway
+        hostnames:
+          - grpc.example.com
+        rules:
+          - matches:
+              - method:
+                  service: com.example.MyService
+            backendRefs:
+              - name: grpc-service
+                port: 9090

@@ -1,0 +1,186 @@
+suite: Gateway API — Kubernetes Gateway API resources
+templates:
+  - app.yaml
+
+# With ../ci/01-defaults.yaml: 3 docs  (Deployment + PDB + Service), no Gateway API
+# With ../ci/08-gateway.yaml:  8 docs  (3 baseline + 5 Gateway API resources)
+#   Gateway, HTTPRoute, TLSRoute, TCPRoute, GRPCRoute
+
+tests:
+  # ── Absence checks (no Gateway API resources in the default scenario) ───
+
+  - it: no Gateway API resources rendered by default
+    values:
+      - ../ci/01-defaults.yaml
+    asserts:
+      - hasDocuments:
+          count: 3  # Deployment + PDB + Service only
+
+  # ── Gateway ──────────────────────────────────────────────────────────────
+
+  - it: Gateway renders from apiGateway.gateways dict
+    values:
+      - ../ci/08-gateway.yaml
+    asserts:
+      - containsDocument:
+          kind: Gateway
+          apiVersion: gateway.networking.k8s.io/v1
+          any: true
+
+  - it: Gateway has correct name
+    values:
+      - ../ci/08-gateway.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: release-name-test-consumer-main
+        documentIndex: 3
+
+  - it: Gateway is namespace-scoped
+    values:
+      - ../ci/08-gateway.yaml
+    asserts:
+      - isNotNull:
+          path: metadata.namespace
+        documentIndex: 3
+
+  - it: Gateway spec is rendered correctly
+    values:
+      - ../ci/08-gateway.yaml
+    asserts:
+      - equal:
+          path: spec.gatewayClassName
+          value: nginx
+        documentIndex: 3
+
+  # ── HTTPRoute ─────────────────────────────────────────────────────────────
+
+  - it: HTTPRoute renders from apiGateway.httpRoutes dict
+    values:
+      - ../ci/08-gateway.yaml
+    asserts:
+      - containsDocument:
+          kind: HTTPRoute
+          apiVersion: gateway.networking.k8s.io/v1
+          any: true
+
+  - it: HTTPRoute has correct name
+    values:
+      - ../ci/08-gateway.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: release-name-test-consumer-web
+        documentIndex: 4
+
+  - it: HTTPRoute is namespace-scoped
+    values:
+      - ../ci/08-gateway.yaml
+    asserts:
+      - isNotNull:
+          path: metadata.namespace
+        documentIndex: 4
+
+  - it: HTTPRoute hostname is rendered correctly
+    values:
+      - ../ci/08-gateway.yaml
+    asserts:
+      - contains:
+          path: spec.hostnames
+          content: app.example.com
+        documentIndex: 4
+
+  # ── TLSRoute ──────────────────────────────────────────────────────────────
+
+  - it: TLSRoute renders from apiGateway.tlsRoutes dict
+    values:
+      - ../ci/08-gateway.yaml
+    asserts:
+      - containsDocument:
+          kind: TLSRoute
+          apiVersion: gateway.networking.k8s.io/v1alpha2
+          any: true
+
+  - it: TLSRoute has correct name
+    values:
+      - ../ci/08-gateway.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: release-name-test-consumer-passthrough
+        documentIndex: 5
+
+  - it: TLSRoute hostname is rendered correctly
+    values:
+      - ../ci/08-gateway.yaml
+    asserts:
+      - contains:
+          path: spec.hostnames
+          content: db.example.com
+        documentIndex: 5
+
+  # ── TCPRoute ──────────────────────────────────────────────────────────────
+
+  - it: TCPRoute renders from apiGateway.tcpRoutes dict
+    values:
+      - ../ci/08-gateway.yaml
+    asserts:
+      - containsDocument:
+          kind: TCPRoute
+          apiVersion: gateway.networking.k8s.io/v1alpha2
+          any: true
+
+  - it: TCPRoute has correct name
+    values:
+      - ../ci/08-gateway.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: release-name-test-consumer-redis
+        documentIndex: 6
+
+  - it: TCPRoute is namespace-scoped
+    values:
+      - ../ci/08-gateway.yaml
+    asserts:
+      - isNotNull:
+          path: metadata.namespace
+        documentIndex: 6
+
+  # ── GRPCRoute ─────────────────────────────────────────────────────────────
+
+  - it: GRPCRoute renders from apiGateway.grpcRoutes dict
+    values:
+      - ../ci/08-gateway.yaml
+    asserts:
+      - containsDocument:
+          kind: GRPCRoute
+          apiVersion: gateway.networking.k8s.io/v1
+          any: true
+
+  - it: GRPCRoute has correct name
+    values:
+      - ../ci/08-gateway.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: release-name-test-consumer-api
+        documentIndex: 7
+
+  - it: GRPCRoute hostname is rendered correctly
+    values:
+      - ../ci/08-gateway.yaml
+    asserts:
+      - contains:
+          path: spec.hostnames
+          content: grpc.example.com
+        documentIndex: 7
+
+  # ── Total document count ─────────────────────────────────────────────────
+
+  - it: renders all 8 documents with full Gateway API values
+    values:
+      - ../ci/08-gateway.yaml
+    asserts:
+      - hasDocuments:
+          count: 8

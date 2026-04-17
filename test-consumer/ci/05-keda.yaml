@@ -1,0 +1,101 @@
+# ============================================================
+# ci/05-keda.yaml — KEDA resources
+# Exercises all KEDA resource types: ScaledObject, ScaledJob,
+# TriggerAuthentication, ClusterTriggerAuthentication.
+# Also verifies that ScaledObjects suppress HPA even when
+# autoscaling.enabled is true.
+#
+# Document order (7 total):
+#   0  Deployment
+#   1  PodDisruptionBudget
+#   2  Service
+#   3  ScaledObject        (main)
+#   4  ScaledJob           (queue-worker)
+#   5  TriggerAuthentication      (aws-auth)
+#   6  ClusterTriggerAuthentication (shared-aws-auth)
+# ============================================================
+
+image:
+  repository: nginx
+  tag: "latest"
+
+resources:
+  requests:
+    memory: 128Mi
+    cpu: 100m
+
+# HPA is enabled but must be suppressed by ScaledObject
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPU: 80
+
+keda:
+
+  # ── ScaledObjects ─────────────────────────────────────────
+  scaledObjects:
+    main:
+      labels:
+        keda-managed: "true"
+      annotations:
+        managed-by: helm
+      spec:
+        scaleTargetRef:
+          name: release-name-test-consumer
+        minReplicaCount: 1
+        maxReplicaCount: 10
+        triggers:
+          - type: cpu
+            metricType: Utilization
+            metadata:
+              value: "70"
+
+  # ── ScaledJobs ────────────────────────────────────────────
+  scaledJobs:
+    queue-worker:
+      labels:
+        job-type: queue
+      spec:
+        jobTargetRef:
+          parallelism: 1
+          completions: 1
+          template:
+            spec:
+              containers:
+                - name: worker
+                  image: busybox:1.36
+                  command: ["sh", "-c", "echo processing"]
+              restartPolicy: Never
+        triggers:
+          - type: rabbitmq
+            metadata:
+              queueName: tasks
+              mode: QueueLength
+              value: "5"
+
+  # ── TriggerAuthentications ────────────────────────────────
+  triggerAuthentications:
+    aws-auth:
+      labels:
+        provider: aws
+      spec:
+        secretTargetRef:
+          - parameter: awsAccessKeyID
+            name: keda-aws-secret
+            key: AWS_ACCESS_KEY_ID
+          - parameter: awsSecretAccessKey
+            name: keda-aws-secret
+            key: AWS_SECRET_ACCESS_KEY
+
+  # ── ClusterTriggerAuthentications ────────────────────────
+  clusterTriggerAuthentications:
+    shared-aws-auth:
+      labels:
+        provider: aws
+        scope: cluster
+      spec:
+        secretTargetRef:
+          - parameter: awsAccessKeyID
+            name: keda-aws-secret
+            key: AWS_ACCESS_KEY_ID

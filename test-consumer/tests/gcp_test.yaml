@@ -1,0 +1,133 @@
+suite: GCP — Google Kubernetes Engine resources
+templates:
+  - app.yaml
+
+# With ../ci/01-defaults.yaml: 3 docs  (Deployment + PDB + Service), no GCP
+# With ../ci/06-gcp.yaml:      6 docs  (3 baseline + 3 GCP resources)
+#   BackendConfig, FrontendConfig, ManagedCertificate
+
+tests:
+  # ── Absence checks (no GCP resources in the default scenario) ──────────
+
+  - it: no GCP resources rendered by default
+    values:
+      - ../ci/01-defaults.yaml
+    asserts:
+      - hasDocuments:
+          count: 3  # Deployment + PDB + Service only
+
+  # ── BackendConfig ───────────────────────────────────────────────────────
+
+  - it: BackendConfig renders from gcp.backendConfigs dict
+    values:
+      - ../ci/06-gcp.yaml
+    asserts:
+      - containsDocument:
+          kind: BackendConfig
+          apiVersion: cloud.google.com/v1
+          any: true
+
+  - it: BackendConfig has correct name
+    values:
+      - ../ci/06-gcp.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: release-name-test-consumer-cdn
+        documentIndex: 3
+
+  - it: BackendConfig is namespace-scoped
+    values:
+      - ../ci/06-gcp.yaml
+    asserts:
+      - isNotNull:
+          path: metadata.namespace
+        documentIndex: 3
+
+  - it: BackendConfig CDN spec is rendered correctly
+    values:
+      - ../ci/06-gcp.yaml
+    asserts:
+      - equal:
+          path: spec.cdn.enabled
+          value: true
+        documentIndex: 3
+      - equal:
+          path: spec.timeoutSec
+          value: 30
+        documentIndex: 3
+
+  # ── FrontendConfig ──────────────────────────────────────────────────────
+
+  - it: FrontendConfig renders from gcp.frontendConfigs dict
+    values:
+      - ../ci/06-gcp.yaml
+    asserts:
+      - containsDocument:
+          kind: FrontendConfig
+          apiVersion: networking.gke.io/v1beta1
+          any: true
+
+  - it: FrontendConfig has correct name
+    values:
+      - ../ci/06-gcp.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: release-name-test-consumer-redirect
+        documentIndex: 4
+
+  - it: FrontendConfig redirect spec is rendered correctly
+    values:
+      - ../ci/06-gcp.yaml
+    asserts:
+      - equal:
+          path: spec.redirectToHttps.enabled
+          value: true
+        documentIndex: 4
+
+  # ── ManagedCertificate ──────────────────────────────────────────────────
+
+  - it: ManagedCertificate renders from gcp.managedCertificates dict
+    values:
+      - ../ci/06-gcp.yaml
+    asserts:
+      - containsDocument:
+          kind: ManagedCertificate
+          apiVersion: networking.gke.io/v1
+          any: true
+
+  - it: ManagedCertificate has correct name
+    values:
+      - ../ci/06-gcp.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: release-name-test-consumer-app-cert
+        documentIndex: 5
+
+  - it: ManagedCertificate domains are rendered correctly
+    values:
+      - ../ci/06-gcp.yaml
+    asserts:
+      - contains:
+          path: spec.domains
+          content: app.example.com
+        documentIndex: 5
+
+  - it: ManagedCertificate is namespace-scoped
+    values:
+      - ../ci/06-gcp.yaml
+    asserts:
+      - isNotNull:
+          path: metadata.namespace
+        documentIndex: 5
+
+  # ── Total document count ────────────────────────────────────────────────
+
+  - it: renders all 6 documents with full GCP values
+    values:
+      - ../ci/06-gcp.yaml
+    asserts:
+      - hasDocuments:
+          count: 6

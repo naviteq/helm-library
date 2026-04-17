@@ -1,0 +1,58 @@
+suite: RBAC
+templates:
+  - app.yaml
+
+# With ../ci/01-defaults.yaml: 3 docs (Deployment + PDB + Service)
+# With ../ci/03-full.yaml:     12 docs (ConfigMap + Secret + SA + Role + RoleBinding +
+#                                    ClusterRole + ClusterRoleBinding + Deployment +
+#                                    HPA + PDB + Ingress + Service)
+
+tests:
+  - it: no ServiceAccount by default
+    values:
+      - ../ci/01-defaults.yaml
+    asserts:
+      - hasDocuments:
+          count: 3  # Deployment + PDB + Service only
+
+  - it: ServiceAccount renders when create is true
+    values:
+      - ../ci/03-full.yaml
+    asserts:
+      - containsDocument:
+          kind: ServiceAccount
+          apiVersion: v1
+          any: true
+
+  - it: Role and RoleBinding render with rbac.rules
+    values:
+      - ../ci/03-full.yaml
+    asserts:
+      - containsDocument:
+          kind: Role
+          apiVersion: rbac.authorization.k8s.io/v1
+          any: true
+      - containsDocument:
+          kind: RoleBinding
+          apiVersion: rbac.authorization.k8s.io/v1
+          any: true
+
+  - it: ClusterRole and ClusterRoleBinding render with rbac.clusterRules
+    values:
+      - ../ci/03-full.yaml
+    asserts:
+      - containsDocument:
+          kind: ClusterRole
+          apiVersion: rbac.authorization.k8s.io/v1
+          any: true
+      - containsDocument:
+          kind: ClusterRoleBinding
+          apiVersion: rbac.authorization.k8s.io/v1
+          any: true
+
+  - it: no RBAC resources without rbac.create
+    values:
+      - ../ci/01-defaults.yaml
+    asserts:
+      - hasDocuments:
+          count: 3  # Deployment + PDB + Service only

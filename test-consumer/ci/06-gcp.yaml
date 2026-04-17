@@ -1,0 +1,66 @@
+# ============================================================
+# ci/06-gcp.yaml — GCP-specific GKE resources
+# Exercises all GCP resource types: BackendConfig, FrontendConfig,
+# ManagedCertificate.
+#
+# Document order (6 total):
+#   0  Deployment
+#   1  PodDisruptionBudget
+#   2  Service
+#   3  BackendConfig     (cdn)
+#   4  FrontendConfig    (redirect)
+#   5  ManagedCertificate (app-cert)
+# ============================================================
+
+image:
+  repository: nginx
+  tag: "latest"
+
+resources:
+  requests:
+    memory: 128Mi
+    cpu: 100m
+
+gcp:
+
+  # ── BackendConfigs ────────────────────────────────────────
+  backendConfigs:
+    cdn:
+      labels:
+        gcp-managed: "true"
+      annotations:
+        managed-by: helm
+      spec:
+        cdn:
+          enabled: true
+          cachePolicy:
+            includeHost: true
+            includeProtocol: true
+            includeQueryString: false
+        timeoutSec: 30
+        connectionDraining:
+          drainingTimeoutSec: 60
+        sessionAffinity:
+          affinityType: GENERATED_COOKIE
+          affinityCookieTtlSec: 50
+
+  # ── FrontendConfigs ───────────────────────────────────────
+  frontendConfigs:
+    redirect:
+      labels:
+        gcp-managed: "true"
+      spec:
+        redirectToHttps:
+          enabled: true
+          responseCodeName: MOVED_PERMANENTLY_DEFAULT
+        sslPolicy: my-ssl-policy
+
+  # ── ManagedCertificates ───────────────────────────────────
+  managedCertificates:
+    app-cert:
+      labels:
+        cert-type: managed
+      spec:
+        domains:
+          - app.example.com
+          - www.app.example.com
