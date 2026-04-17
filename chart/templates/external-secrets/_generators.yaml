@@ -1,0 +1,166 @@
+{{/*
+Render Generator CRs from .Values.eso.generators.* dicts.
+
+Supported types and their apiVersions:
+  ACRAccessToken         generators.external-secrets.io/v1alpha1  (namespaced)
+  ECRAuthorizationToken  generators.external-secrets.io/v1alpha1  (namespaced)
+  STSSessionToken        generators.external-secrets.io/v1alpha1  (namespaced)
+  ClusterGenerator       generators.external-secrets.io/v1alpha1  (cluster-scoped)
+  GCRAccessToken         generators.external-secrets.io/v1alpha1  (namespaced)
+  GithubAccessToken      generators.external-secrets.io/v1alpha1  (namespaced)
+  VaultDynamicSecret     generators.external-secrets.io/v1alpha1  (namespaced)
+  Webhook                generators.external-secrets.io/v1alpha1  (cluster-scoped)
+  Password               generators.external-secrets.io/v1alpha1  (namespaced)
+  MFA                    generators.external-secrets.io/v1alpha1  (namespaced)
+  SSHKey                 generators.external-secrets.io/v1alpha1  (namespaced)
+  Fake                   generators.external-secrets.io/v1alpha1  (namespaced)
+  UUID                   generators.external-secrets.io/v1alpha1  (namespaced)
+
+refs:
+  https://external-secrets.io/latest/api/generator/acr/
+  https://external-secrets.io/latest/api/generator/ecr/
+  https://external-secrets.io/latest/api/generator/sts/
+  https://external-secrets.io/latest/api/generator/cluster/
+  https://external-secrets.io/latest/api/generator/gcr/
+  https://external-secrets.io/latest/api/generator/github/
+  https://external-secrets.io/latest/api/generator/vault/
+  https://external-secrets.io/latest/api/generator/webhook/
+  https://external-secrets.io/latest/api/generator/password/
+  https://external-secrets.io/latest/api/generator/mfa/
+  https://external-secrets.io/latest/api/generator/sshkey/
+  https://external-secrets.io/latest/api/generator/fake/
+  https://external-secrets.io/latest/api/generator/uuid/
+*/}}
+{{- define "library.generators" -}}
+
+{{- range $name, $gen := .Values.eso.generators.acrAccessToken }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        $gen
+  "kind"       "ACRAccessToken"
+  "apiVersion" "generators.external-secrets.io/v1alpha1"
+  "namespaced" true
+  "context"    $) }}
+{{- end }}
+
+{{- range $name, $gen := .Values.eso.generators.ecrAuthorizationTokens }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        $gen
+  "kind"       "ECRAuthorizationToken"
+  "apiVersion" "generators.external-secrets.io/v1alpha1"
+  "namespaced" true
+  "context"    $) }}
+{{- end }}
+
+{{- range $name, $gen := .Values.eso.generators.stsSessionTokens }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        $gen
+  "kind"       "STSSessionToken"
+  "apiVersion" "generators.external-secrets.io/v1alpha1"
+  "namespaced" true
+  "context"    $) }}
+{{- end }}
+
+{{- range $name, $gen := .Values.eso.generators.clusterGenerators }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        $gen
+  "kind"       "ClusterGenerator"
+  "apiVersion" "generators.external-secrets.io/v1alpha1"
+  "namespaced" false
+  "context"    $) }}
+{{- end }}
+
+{{- range $name, $gen := .Values.eso.generators.gcrAccessTokens }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        $gen
+  "kind"       "GCRAccessToken"
+  "apiVersion" "generators.external-secrets.io/v1alpha1"
+  "namespaced" true
+  "context"    $) }}
+{{- end }}
+
+{{- range $name, $gen := .Values.eso.generators.githubAccessTokens }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        $gen
+  "kind"       "GithubAccessToken"
+  "apiVersion" "generators.external-secrets.io/v1alpha1"
+  "namespaced" true
+  "context"    $) }}
+{{- end }}
+
+{{- range $name, $gen := .Values.eso.generators.vaultDynamicSecrets }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        $gen
+  "kind"       "VaultDynamicSecret"
+  "apiVersion" "generators.external-secrets.io/v1alpha1"
+  "namespaced" true
+  "context"    $) }}
+{{- end }}
+
+{{- range $name, $gen := .Values.eso.generators.webhooks }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        $gen
+  "kind"       "Webhook"
+  "apiVersion" "generators.external-secrets.io/v1alpha1"
+  "namespaced" false
+  "context"    $) }}
+{{- end }}
+
+{{- range $name, $gen := .Values.eso.generators.passwords }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        $gen
+  "kind"       "Password"
+  "apiVersion" "generators.external-secrets.io/v1alpha1"
+  "namespaced" true
+  "context"    $) }}
+{{- end }}
+
+{{- range $name, $gen := .Values.eso.generators.mfas }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        $gen
+  "kind"       "MFA"
+  "apiVersion" "generators.external-secrets.io/v1alpha1"
+  "namespaced" true
+  "context"    $) }}
+{{- end }}
+
+{{- range $name, $gen := .Values.eso.generators.sshKeys }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        $gen
+  "kind"       "SSHKey"
+  "apiVersion" "generators.external-secrets.io/v1alpha1"
+  "namespaced" true
+  "context"    $) }}
+{{- end }}
+
+{{- range $name, $gen := .Values.eso.generators.fakes }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        $gen
+  "kind"       "Fake"
+  "apiVersion" "generators.external-secrets.io/v1alpha1"
+  "namespaced" true
+  "context"    $) }}
+{{- end }}
+
+{{- range $name, $gen := .Values.eso.generators.uuids }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        $gen
+  "kind"       "UUID"
+  "apiVersion" "generators.external-secrets.io/v1alpha1"
+  "namespaced" true
+  "context"    $) }}
+{{- end }}
+
+{{- end -}}

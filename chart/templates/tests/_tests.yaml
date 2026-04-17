@@ -1,0 +1,265 @@
+{{/*
+Aggregate: includes all test definitions at once.
+Usage in consumer chart's templates/tests/test-suite.yaml:
+  {{ include "library.tests" . }}
+*/}}
+{{- define "library.tests" -}}
+{{ include "library.test_service" . }}
+{{ include "library.test_ingress" . }}
+{{ include "library.test_probes" . }}
+{{ include "library.test_configmaps" . }}
+{{ include "library.test_secret" . }}
+{{- end }}
+
+
+{{/*
+Test: HTTP connectivity to the ClusterIP Service.
+Performs a wget/curl against the first service port and the configured test path.
+Usage: {{ include "library.test_service" . }}
+*/}}
+{{- define "library.test_service" -}}
+{{- $fullName := include "common.names.fullname" . -}}
+{{- $port := (index .Values.service.ports 0).port -}}
+{{- $path := default "/" .Values.service.test -}}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ $fullName }}-test-service"
+  namespace: {{ include "common.names.namespace" . | quote }}
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonLabels "context" $ ) | nindent 4 }}
+    {{- end }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: test-service
+      image: curlimages/curl:8.6.0
+      command:
+        - sh
+        - -c
+        - |
+          set -e
+          URL="http://{{ $fullName }}:{{ $port }}{{ $path }}"
+          echo "Testing service connectivity: $URL"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$URL")
+          echo "HTTP status: $STATUS"
+          if [ "$STATUS" -lt 200 ] || [ "$STATUS" -ge 500 ]; then
+            echo "FAIL: unexpected HTTP status $STATUS"
+            exit 1
+          fi
+          echo "OK"
+{{- end }}
+
+
+{{/*
+Test: HTTP connectivity through the Ingress hostname.
+Only rendered when ingress.enabled is true.
+Usage: {{ include "library.test_ingress" . }}
+*/}}
+{{- define "library.test_ingress" -}}
+{{- if .Values.ingress.enabled -}}
+{{- $fullName := include "common.names.fullname" . -}}
+{{- $host := tpl .Values.ingress.hostname . -}}
+{{- $path := default "/" .Values.ingress.path -}}
+{{- $scheme := ternary "https" "http" .Values.ingress.tls -}}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ $fullName }}-test-ingress"
+  namespace: {{ include "common.names.namespace" . | quote }}
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonLabels "context" $ ) | nindent 4 }}
+    {{- end }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: test-ingress
+      image: curlimages/curl:8.6.0
+      command:
+        - sh
+        - -c
+        - |
+          set -e
+          URL="{{ $scheme }}://{{ $host }}{{ $path }}"
+          echo "Testing ingress connectivity: $URL"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 \
+            {{- if .Values.ingress.tls }} --insecure \{{- end }}
+            -H "Host: {{ $host }}" "$URL")
+          echo "HTTP status: $STATUS"
+          if [ "$STATUS" -lt 200 ] || [ "$STATUS" -ge 500 ]; then
+            echo "FAIL: unexpected HTTP status $STATUS"
+            exit 1
+          fi
+          echo "OK"
+{{- end }}
+{{- end }}
+
+
+{{/*
+Test: Liveness, Readiness, and Startup probe paths are reachable on the Service.
+Only rendered when at least one probe is enabled and uses httpGet.
+Usage: {{ include "library.test_probes" . }}
+*/}}
+{{- define "library.test_probes" -}}
+{{- $fullName := include "common.names.fullname" . -}}
+{{- $port := (index .Values.service.ports 0).port -}}
+{{- $hasProbe := or
+      (and .Values.livenessProbe.enabled .Values.livenessProbe.httpGet)
+      (and .Values.readinessProbe.enabled .Values.readinessProbe.httpGet)
+      (and .Values.startupProbe.enabled .Values.startupProbe.httpGet) -}}
+{{- if and (not .Values.diagnosticMode.enabled) $hasProbe -}}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ $fullName }}-test-probes"
+  namespace: {{ include "common.names.namespace" . | quote }}
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonLabels "context" $ ) | nindent 4 }}
+    {{- end }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: test-probes
+      image: curlimages/curl:8.6.0
+      command:
+        - sh
+        - -c
+        - |
+          set -e
+          BASE="http://{{ $fullName }}:{{ $port }}"
+          {{- if and .Values.livenessProbe.enabled .Values.livenessProbe.httpGet }}
+          echo "Testing liveness probe: {{ .Values.livenessProbe.httpGet.path }}"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$BASE{{ .Values.livenessProbe.httpGet.path }}")
+          echo "  HTTP $STATUS"
+          [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 500 ] || { echo "FAIL"; exit 1; }
+          {{- end }}
+          {{- if and .Values.readinessProbe.enabled .Values.readinessProbe.httpGet }}
+          echo "Testing readiness probe: {{ .Values.readinessProbe.httpGet.path }}"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$BASE{{ .Values.readinessProbe.httpGet.path }}")
+          echo "  HTTP $STATUS"
+          [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 500 ] || { echo "FAIL"; exit 1; }
+          {{- end }}
+          {{- if and .Values.startupProbe.enabled .Values.startupProbe.httpGet }}
+          echo "Testing startup probe: {{ .Values.startupProbe.httpGet.path }}"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$BASE{{ .Values.startupProbe.httpGet.path }}")
+          echo "  HTTP $STATUS"
+          [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 500 ] || { echo "FAIL"; exit 1; }
+          {{- end }}
+          echo "All probe paths OK"
+{{- end }}
+{{- end }}
+
+
+{{/*
+Test: Mounted ConfigMap files are accessible inside the pod.
+Renders one test per mounted ConfigMap.
+Usage: {{ include "library.test_configmaps" . }}
+*/}}
+{{- define "library.test_configmaps" -}}
+{{- $fullName := include "common.names.fullname" . -}}
+{{- range $name, $cm := .Values.configMaps -}}
+{{- if $cm.mounted -}}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ $fullName }}-test-cm-{{ $name }}"
+  namespace: {{ include "common.names.namespace" $ | quote }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" $.Values.commonLabels "context" $ ) | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  restartPolicy: Never
+  volumes:
+    - name: {{ $fullName }}-{{ $name }}
+      configMap:
+        name: {{ $fullName }}-{{ $name }}
+  containers:
+    - name: test-cm-{{ $name }}
+      image: busybox:1.36.1
+      command:
+        - sh
+        - -c
+        - |
+          set -e
+          MOUNT="{{ $cm.mountPath }}"
+          echo "Checking ConfigMap mount at $MOUNT"
+          [ -d "$MOUNT" ] || [ -f "$MOUNT" ] || { echo "FAIL: mount path $MOUNT not found"; exit 1; }
+          echo "OK"
+      volumeMounts:
+        - name: {{ $fullName }}-{{ $name }}
+          mountPath: {{ $cm.mountPath }}
+          {{- if $cm.subPath }}
+          subPath: {{ $cm.subPath }}
+          {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+
+{{/*
+Test: Mounted Secret files are accessible inside the pod.
+Only rendered when secret.mounted is true.
+Usage: {{ include "library.test_secret" . }}
+*/}}
+{{- define "library.test_secret" -}}
+{{- if and .Values.secret.mounted .Values.secret.mountPath -}}
+{{- $fullName := include "common.names.fullname" . -}}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ $fullName }}-test-secret"
+  namespace: {{ include "common.names.namespace" . | quote }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  restartPolicy: Never
+  volumes:
+    - name: {{ $fullName }}-secret
+      secret:
+        secretName: {{ $fullName }}
+        {{- if .Values.secret.defaultMode }}
+        defaultMode: {{ .Values.secret.defaultMode }}
+        {{- end }}
+        {{- if .Values.secret.items }}
+        items: {{- toYaml .Values.secret.items | nindent 8 }}
+        {{- end }}
+  containers:
+    - name: test-secret
+      image: busybox:1.36.1
+      command:
+        - sh
+        - -c
+        - |
+          set -e
+          MOUNT="{{ .Values.secret.mountPath }}"
+          echo "Checking Secret mount at $MOUNT"
+          [ -d "$MOUNT" ] || [ -f "$MOUNT" ] || { echo "FAIL: mount path $MOUNT not found"; exit 1; }
+          echo "OK"
+      volumeMounts:
+        - name: {{ $fullName }}-secret
+          mountPath: {{ .Values.secret.mountPath }}
+          {{- if .Values.secret.subPath }}
+          subPath: {{ .Values.secret.subPath }}
+          {{- end }}
+{{- end }}
+{{- end }}

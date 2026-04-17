@@ -1,0 +1,22 @@
+{{/*
+Render ENIConfig CRs from .Values.aws.eniConfigs dict.
+Each key becomes a resource named <fullname>-<key>.
+ENIConfigs enable custom networking in EKS — associates an availability zone
+with a specific subnet and security groups for secondary pod ENIs.
+Node must be annotated with k8s.amazonaws.com/eniConfig=<name> or
+AWS_VPC_K8S_CNI_CUSTOM_NETWORK_CFG=true set on aws-node DaemonSet.
+
+apiVersion: crd.k8s.amazonaws.com/v1alpha1
+ref: https://docs.aws.amazon.com/eks/latest/best-practices/custom-networking.html
+*/}}
+{{- define "library.eniConfigs" -}}
+{{- range $name, $ec := .Values.aws.eniConfigs }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        $ec
+  "kind"       "ENIConfig"
+  "apiVersion" "crd.k8s.amazonaws.com/v1alpha1"
+  "namespaced" false
+  "context"    $) }}
+{{- end }}
+{{- end -}}
