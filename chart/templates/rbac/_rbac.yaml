@@ -1,0 +1,113 @@
+{{/*
+Render Role + RoleBinding when rbac.create is true and rbac.rules is non-empty.
+Render ClusterRole + ClusterRoleBinding when rbac.create is true and rbac.clusterRules is non-empty.
+*/}}
+{{- define "library.rbac" -}}
+{{- if .Values.rbac.create }}
+
+{{- if .Values.rbac.rules }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "common.names.fullname" . }}
+  namespace: {{ include "common.names.namespace" . | quote }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
+    {{- if .Values.rbac.labels }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.rbac.labels "context" $ ) | nindent 4 }}
+    {{- end }}
+  {{- if or .Values.commonAnnotations .Values.rbac.annotations }}
+  annotations:
+    {{- if .Values.commonAnnotations }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
+    {{- end }}
+    {{- if .Values.rbac.annotations }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.rbac.annotations "context" $ ) | nindent 4 }}
+    {{- end }}
+  {{- end }}
+rules: {{- include "common.tplvalues.render" ( dict "value" .Values.rbac.rules "context" $ ) | nindent 2 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "common.names.fullname" . }}
+  namespace: {{ include "common.names.namespace" . | quote }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
+    {{- if .Values.rbac.labels }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.rbac.labels "context" $ ) | nindent 4 }}
+    {{- end }}
+  {{- if or .Values.commonAnnotations .Values.rbac.annotations }}
+  annotations:
+    {{- if .Values.commonAnnotations }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
+    {{- end }}
+    {{- if .Values.rbac.annotations }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.rbac.annotations "context" $ ) | nindent 4 }}
+    {{- end }}
+  {{- end }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "common.names.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "library.serviceAccountName" . }}
+    namespace: {{ include "common.names.namespace" . | quote }}
+  {{- if .Values.rbac.extraSubjects }}
+  {{- include "common.tplvalues.render" ( dict "value" .Values.rbac.extraSubjects "context" $ ) | nindent 2 }}
+  {{- end }}
+{{- end }}
+
+{{- if .Values.rbac.clusterRules }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "common.names.fullname" . }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
+    {{- if .Values.rbac.labels }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.rbac.labels "context" $ ) | nindent 4 }}
+    {{- end }}
+  {{- if or .Values.commonAnnotations .Values.rbac.annotations }}
+  annotations:
+    {{- if .Values.commonAnnotations }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
+    {{- end }}
+    {{- if .Values.rbac.annotations }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.rbac.annotations "context" $ ) | nindent 4 }}
+    {{- end }}
+  {{- end }}
+rules: {{- include "common.tplvalues.render" ( dict "value" .Values.rbac.clusterRules "context" $ ) | nindent 2 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "common.names.fullname" . }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
+    {{- if .Values.rbac.labels }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.rbac.labels "context" $ ) | nindent 4 }}
+    {{- end }}
+  {{- if or .Values.commonAnnotations .Values.rbac.annotations }}
+  annotations:
+    {{- if .Values.commonAnnotations }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
+    {{- end }}
+    {{- if .Values.rbac.annotations }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.rbac.annotations "context" $ ) | nindent 4 }}
+    {{- end }}
+  {{- end }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "common.names.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "library.serviceAccountName" . }}
+    namespace: {{ include "common.names.namespace" . | quote }}
+  {{- if .Values.rbac.extraSubjects }}
+  {{- include "common.tplvalues.render" ( dict "value" .Values.rbac.extraSubjects "context" $ ) | nindent 2 }}
+  {{- end }}
+{{- end }}
+
+{{- end }}
+{{- end -}}

@@ -1,0 +1,20 @@
+{{/*
+Render HTTPRoute CRs from .Values.apiGateway.httpRoutes dict.
+Each key becomes a resource named <fullname>-<key>.
+HTTPRoutes define HTTP/HTTPS routing rules — path matching, header matching,
+traffic splitting, redirects, and URL rewrites — bound to a parent Gateway.
+
+apiVersion: gateway.networking.k8s.io/v1
+ref: https://gateway-api.sigs.k8s.io/guides/http-routing/
+*/}}
+{{- define "library.httpRoutes" -}}
+{{- range $name, $hr := .Values.apiGateway.httpRoutes }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        $hr
+  "kind"       "HTTPRoute"
+  "apiVersion" "gateway.networking.k8s.io/v1"
+  "namespaced" true
+  "context"    $) }}
+{{- end }}
+{{- end -}}
