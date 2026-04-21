@@ -1,0 +1,19 @@
+{{/*
+Render ClusterTriggerAuthentication CRs from .Values.keda.clusterTriggerAuthentications dict.
+Each key becomes a resource named <fullname>-<key>.
+Cluster-scoped; can be referenced by ScaledObjects/ScaledJobs across namespaces.
+
+apiVersion: keda.sh/v1alpha1
+ref: https://keda.sh/docs/latest/concepts/authentication/
+*/}}
+{{- define "library.clusterTriggerAuthentications" -}}
+{{- range $name, $cta := .Values.keda.clusterTriggerAuthentications }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        $cta
+  "kind"       "ClusterTriggerAuthentication"
+  "apiVersion" "keda.sh/v1alpha1"
+  "namespaced" false
+  "context"    $) }}
+{{- end }}
+{{- end -}}
