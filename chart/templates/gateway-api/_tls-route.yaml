@@ -1,0 +1,20 @@
+{{/*
+Render TLSRoute CRs from .Values.apiGateway.tlsRoutes dict.
+Each key becomes a resource named <fullname>-<key>.
+TLSRoutes define TLS passthrough routing based on SNI hostnames,
+allowing TCP traffic to be forwarded without terminating TLS at the gateway.
+
+apiVersion: gateway.networking.k8s.io/v1alpha2
+ref: https://gateway-api.sigs.k8s.io/guides/tls/
+*/}}
+{{- define "library.tlsRoutes" -}}
+{{- range $name, $tr := .Values.apiGateway.tlsRoutes }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        $tr
+  "kind"       "TLSRoute"
+  "apiVersion" "gateway.networking.k8s.io/v1alpha2"
+  "namespaced" true
+  "context"    $) }}
+{{- end }}
+{{- end -}}

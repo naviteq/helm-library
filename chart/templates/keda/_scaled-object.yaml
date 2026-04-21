@@ -1,0 +1,19 @@
+{{/*
+Render ScaledObject CRs from .Values.keda.scaledObjects dict.
+Each key becomes a resource named <fullname>-<key>.
+When non-empty, takes precedence over HPA — see workloads/_hpa.yaml.
+
+apiVersion: keda.sh/v1alpha1
+ref: https://keda.sh/docs/latest/reference/scaledobject-spec/
+*/}}
+{{- define "library.scaledObjects" -}}
+{{- range $name, $so := .Values.keda.scaledObjects }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        $so
+  "kind"       "ScaledObject"
+  "apiVersion" "keda.sh/v1alpha1"
+  "namespaced" true
+  "context"    $) }}
+{{- end }}
+{{- end -}}

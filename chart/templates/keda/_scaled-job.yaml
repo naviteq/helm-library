@@ -1,0 +1,18 @@
+{{/*
+Render ScaledJob CRs from .Values.keda.scaledJobs dict.
+Each key becomes a resource named <fullname>-<key>.
+
+apiVersion: keda.sh/v1alpha1
+ref: https://keda.sh/docs/latest/reference/scaledjob-spec/
+*/}}
+{{- define "library.scaledJobs" -}}
+{{- range $name, $sj := .Values.keda.scaledJobs }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        $sj
+  "kind"       "ScaledJob"
+  "apiVersion" "keda.sh/v1alpha1"
+  "namespaced" true
+  "context"    $) }}
+{{- end }}
+{{- end -}}

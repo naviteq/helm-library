@@ -1,0 +1,23 @@
+{{/*
+Render FrontendConfig CRs from .Values.gcp.frontendConfigs dict.
+Each key becomes a resource named <fullname>-<key>.
+FrontendConfigs configure GKE Ingress frontend behavior:
+SSL policies and HTTP-to-HTTPS redirects.
+
+To associate with an Ingress, annotate it:
+  networking.gke.io/v1beta1.FrontendConfig: <fullname>-<key>
+
+apiVersion: networking.gke.io/v1beta1
+ref: https://cloud.google.com/kubernetes-engine/docs/how-to/ingress-configuration
+*/}}
+{{- define "library.frontendConfigs" -}}
+{{- range $name, $fc := .Values.gcp.frontendConfigs }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        $fc
+  "kind"       "FrontendConfig"
+  "apiVersion" "networking.gke.io/v1beta1"
+  "namespaced" true
+  "context"    $) }}
+{{- end }}
+{{- end -}}
