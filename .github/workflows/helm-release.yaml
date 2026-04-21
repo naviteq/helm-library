@@ -3,10 +3,12 @@ name: Release
 
 on:
   push:
-    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+    # tags: ['v[0-9]+.[0-9]+.[0-9]+']
+    branches: [add_workflows]
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   helm:
@@ -15,6 +17,7 @@ jobs:
       chart_path: chart
       ghcr_repo: ${{ github.repository }}
       bump_version_git_branch: main
+      push_chart: false
     secrets:
       GITHUB_APP_ID: ${{ secrets.NAVITEQ_GITHUB_APP_ID }}
       GITHUB_APP_KEY: ${{ secrets.NAVITEQ_GITHUB_APP_KEY }}
