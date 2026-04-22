@@ -3,9 +3,9 @@ apiVersion: v2
 name: naviteq-library-chart
 description: Naviteq reusable Helm chart
 type: library
-version: 0.0.6
+version: 0.0.2
 dependencies:
   - name: common
     version: 2.36.0
     repository: oci://registry-1.docker.io/bitnamicharts
-appVersion: v0.0.6
+appVersion: v0.0.2
