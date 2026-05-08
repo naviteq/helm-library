@@ -36,13 +36,7 @@ This chart is published as an OCI artifact to **GitHub Container Registry (GHCR)
 oci://ghcr.io/naviteq/helm-library/naviteq-library-chart
 ```
 
-### Authenticate (private registry)
-
-The registry is private. Log Helm in once with a GitHub token that has `read:packages`:
-
-```bash
-gh auth token | helm registry login ghcr.io -u <github-username> --password-stdin
-```
+The package is published with public visibility — no authentication is required to pull it.
 
 ### Add as a dependency
 
@@ -156,5 +150,6 @@ The library provides templates for the following resource categories. Each is op
 
 ## License
 
-> [!NOTE]
-> **License pending** — this section will be filled in once the project's license is confirmed (see the PR description). A `LICENSE` file will be added in a follow-up issue tracked from [#10](https://github.com/naviteq/helm-library/issues/10).
+Licensed under the **Apache License 2.0** — see [`LICENSE`](./LICENSE).
+
+Copyright © 2026 Naviteq.
