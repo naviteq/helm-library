@@ -54,6 +54,36 @@ tasks:
       - helm template test-app {{.CONSUMER_DIR}} -f {{.CONSUMER_DIR}}/ci/08-gateway.yaml
           | kubeconform {{.KUBECONFORM_ARGS}} {{.CRD_ARGS}}
 
+  "compliance:package":
+    desc: Package the consumer chart with its dependencies into .compliance/pkg.
+    # setup vendors the library chart's own deps first: `helm package -u` resolves
+    # the consumer's deps but not the library's, and a missing one renders nothing.
+    deps:
+      - setup
+    cmds:
+      - |
+        set -eu
+        # -u vendors the library chart and embeds it in the archive; Trivy
+        # silently skips a chart whose dependencies are missing.
+        mkdir -p .compliance/pkg
+        helm package -u {{.CONSUMER_DIR}} -d .compliance/pkg
+
+  "compliance:scan":
+    desc: Package the consumer chart, then scan it with Trivy for misconfigurations.
+    deps:
+      - "compliance:package"
+    cmds:
+      - |
+        set -eu
+        if ! command -v trivy >/dev/null 2>&1; then
+          echo "trivy not found in PATH." >&2
+          echo "Install it: https://trivy.dev/latest/getting-started/installation/" >&2
+          exit 127
+        fi
+        # Run from the repo root: helm values paths in trivy.yaml resolve
+        # against the working directory, and a wrong one silently finds nothing.
+        trivy config .compliance/pkg --config trivy.yaml --ignorefile .trivyignore.yaml
+
   test:
     desc: Run lint + unit tests + schema validation
     cmds:

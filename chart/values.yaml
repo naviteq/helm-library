@@ -66,18 +66,12 @@ exports:
       tag: ""
       digest: ""
 
-      ## Specify a imagePullPolicy
-      ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
+      ## Defaults to 'Always' when tag is 'latest', else 'IfNotPresent'
       ## ref: https://kubernetes.io/docs/user-guide/images/#pre-pulling-images
-      ##
       pullPolicy: null
 
-      ## Optionally specify an array of imagePullSecrets (secrets must be manually created in the namespace)
+      ## Secrets must be created manually in the namespace; e.g. [myRegistryKeySecretName]
       ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
-      ## Example:
-      ## pullSecrets:
-      ##   - myRegistryKeySecretName
-      ##
       pullSecrets: []
 
     ## Enable diagnostic mode in the deployment
@@ -106,7 +100,6 @@ exports:
 
     ## List of ports to expose from the container.
     ## ref: https://kubernetes.io/docs/concepts/services-networking/connect-applications-service
-    ##
     ports:
       - name: http
         containerPort: 8080
@@ -257,15 +250,9 @@ exports:
     ## @param resources.requests The requested resources for the container
     ##
     resources:
-      ## Example:
-      ## limits:
-      ##    cpu: 100m
-      ##    memory: 128Mi
+      ## Example: {cpu: 100m, memory: 128Mi}
       limits: {}
-      ## Examples:
-      ## requests:
-      ##    cpu: 100m
-      ##    memory: 128Mi
+      ## Example: {cpu: 100m, memory: 128Mi}
       requests: {}
 
     ## @param hostAliases Add deployment host aliases
@@ -301,15 +288,9 @@ exports:
     ##
     nodeAffinityPreset:
       type: ""
-      ## E.g.
-      ## key: "kubernetes.io/e2e-az-name"
-      ##
+      ## E.g. "kubernetes.io/e2e-az-name"
       key: ""
-      ## E.g.
-      ## values:
-      ##   - e2e-az1
-      ##   - e2e-az2
-      ##
+      ## E.g. [e2e-az1, e2e-az2]
       values: []
 
     ## @param affinity Affinity for pod assignment
@@ -444,7 +425,6 @@ exports:
 
     ## Configure the ConfigMap resource that allows you to store non-confidential data in key-value pairs.
     ## ref: https://kubernetes.io/docs/concepts/configuration/configmap/
-    ##
     configMaps: {}
       ## test:
       ##   mounted: false
@@ -465,7 +445,6 @@ exports:
 
     ## Configure the Secret resource that allows you to store a small amount of sensitive data such as a password, a token, or a key.
     ## ref: https://kubernetes.io/docs/concepts/configuration/secret
-    ##
     secret:
       ## @param secret.type the type is used to facilitate programmatic handling of the Secret data
       type: "Opaque"
@@ -522,7 +501,6 @@ exports:
 
     ## Configure the ingress resource that allows you to access the APP
     ## ref: https://kubernetes.io/docs/user-guide/ingress/
-    ##
     ingress:
       ## @param ingress.enabled Enable ingress resource for the APP
       ##
@@ -805,7 +783,6 @@ exports:
 
     ## Service account for APP pods to use.
     ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/
-    ##
     serviceAccount:
       ## @param serviceAccount.create Enable creation of ServiceAccount for APP pods
       ##
@@ -816,10 +793,10 @@ exports:
       ##
       name: ""
 
-      ## @param serviceAccount.automountServiceAccountToken Allows auto mount of ServiceAccountToken on the serviceAccount created
-      ## Can be set to false if pods using this serviceAccount do not need to use K8s API
+      ## @param serviceAccount.automountServiceAccountToken Auto-mount the ServiceAccountToken on the ServiceAccount created
+      ## Off by default; set to true when pods using this serviceAccount call the Kubernetes API
       ##
-      automountServiceAccountToken: true
+      automountServiceAccountToken: false
 
       ## @param serviceAccount.annotations Additional custom annotations for the ServiceAccount
       ##
@@ -830,7 +807,6 @@ exports:
       labels: {}
     ## RBAC configuration
     ## ref: https://kubernetes.io/docs/reference/access-authn-authz/rbac/
-    ##
     rbac:
       ## @param rbac.create Whether to create RBAC resources (Role/RoleBinding and/or ClusterRole/ClusterRoleBinding)
       ##
@@ -873,7 +849,6 @@ exports:
 
     ## StatefulSet configuration (optional replacement for Deployment)
     ## ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/
-    ##
     statefulSet:
       ## @param statefulSet.enabled Use StatefulSet instead of Deployment
       ##
@@ -1040,7 +1015,6 @@ exports:
 
       ## Generator resources — create short-lived credentials or random values on demand.
       ## ref: https://external-secrets.io/latest/api/generator/
-      ##
       generators:
 
         ## @param eso.generators.acrAccessToken Dict of ACRAccessToken generators
@@ -1210,6 +1184,7 @@ exports:
         ##
         sshKeys: {}
 
+    ## @section KEDA
     ## KEDA — Kubernetes Event-driven Autoscaling
     ## ref: https://keda.sh/docs/latest/
     ##
@@ -1293,6 +1268,7 @@ exports:
       ##
       clusterTriggerAuthentications: {}
 
+    ## @section GCP
     ## GCP — Google Kubernetes Engine specific resources
     ## ref: https://cloud.google.com/kubernetes-engine/docs/how-to/ingress-configuration
     ##
@@ -1353,6 +1329,7 @@ exports:
       managedCertificates: {}
 
     ## ────────────────────────────────────────────────────────────────────────
+    ## @section AWS
     ## AWS EKS-specific resource configuration
     ## Each dict key becomes the resource name suffix: <fullname>-<key>.
     ## Every entry accepts .labels, .annotations, and .spec (passed through as-is).
@@ -1432,6 +1409,7 @@ exports:
       securityGroupPolicies: {}
 
     ## ────────────────────────────────────────────────────────────────────────
+    ## @section Gateway API
     ## Kubernetes Gateway API resource configuration
     ## Each dict key becomes the resource name suffix: <fullname>-<key>.
     ## Every entry accepts .labels, .annotations, and .spec (passed through as-is).
@@ -1539,7 +1517,6 @@ exports:
 
     ## Pod Disruption Budget configuration
     ## ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
-    ##
     pdb:
       ## @param pdb.create Created a PodDisruptionBudget
       ##
@@ -1627,12 +1604,5 @@ exports:
     startupProbe:
       enabled: false
 
-    ## Resources MUST be set per workload — no defaults provided intentionally.
-    ## Helm will fail if resources.requests.memory or resources.requests.cpu are missing.
-    ## resources:
-    ##   requests:
-    ##     cpu: 100m
-    ##     memory: 128Mi
-    ##   limits:
-    ##     cpu: 500m
-    ##     memory: 512Mi
+    ## Resources MUST be set per workload — the render fails without requests.cpu and requests.memory.
+    ## Example: requests {cpu: 100m, memory: 128Mi}, limits {cpu: 500m, memory: 512Mi}
