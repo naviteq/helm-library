@@ -291,6 +291,21 @@ ingress:
           name: api-service
           port:
             name: http
+  extraIngresses:
+    - nameSuffix: webhooks
+      annotations:
+        traefik.ingress.kubernetes.io/router.middlewares: some-namespace-some-middleware@kubernetescrd
+      rules:
+        - host: webhooks.app.example.com
+          http:
+            paths:
+              - path: /
+                pathType: Prefix
+                backend:
+                  service:
+                    name: webhook-service
+                    port:
+                      name: http
 
 # ── Service ──────────────────────────────────────────────────
 service:

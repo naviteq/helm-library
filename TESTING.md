@@ -91,7 +91,7 @@ test-consumer/
 |------|---------|-----------|
 | `ci/01-defaults.yaml` | Minimal scenario (image + resources only) | 3 |
 | `ci/02-statefulset.yaml` | StatefulSet mode with a PVC | 3 |
-| `ci/03-full.yaml` | All standard features on | 13 |
+| `ci/03-full.yaml` | All standard features on | 15 |
 | `ci/04-eso.yaml` | All ESO resource types + 12 generators | 22 |
 | `ci/05-keda.yaml` | All KEDA resource types | 7 |
 | `ci/06-gcp.yaml` | GCP/GKE-specific CRDs | 6 |
