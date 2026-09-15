@@ -57,5 +57,29 @@ spec:
     {{- toYaml .Values.ingress.extraTls | nindent 4 }}
     {{- end }}
   {{- end }}
+{{- range .Values.ingress.extraIngresses }}
+---
+apiVersion: {{ include "common.capabilities.ingress.apiVersion" $ }}
+kind: Ingress
+metadata:
+  name: {{ printf "%s-%s" (include "common.names.fullname" $) .nameSuffix }}
+  namespace: {{ $.Release.Namespace | quote }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" $.Values.commonLabels "context" $ ) | nindent 4 }}
+  {{- if or .annotations $.Values.commonAnnotations }}
+  annotations:
+    {{- $annotations := include "common.tplvalues.merge" ( dict "values" ( list .annotations $.Values.commonAnnotations ) "context" $ ) }}
+    {{- include "common.tplvalues.render" ( dict "value" $annotations "context" $) | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if (.ingressClassName | default $.Values.ingress.ingressClassName) }}
+  ingressClassName: {{ (.ingressClassName | default $.Values.ingress.ingressClassName) | quote }}
+  {{- end }}
+  rules:
+    {{- include "common.tplvalues.render" (dict "value" .rules "context" $) | nindent 4 }}
+  {{- if .tls }}
+  tls:
+    {{- toYaml .tls | nindent 4 }}
+  {{- end }}
+{{- end }}
 {{- end }}
 {{- end -}}
