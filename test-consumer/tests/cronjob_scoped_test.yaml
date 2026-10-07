@@ -1,0 +1,51 @@
+suite: CronJob rendered per key through a scoped context
+release:
+  name: test-app
+templates:
+  - extra-cronjobs.yaml
+
+# extra-cronjobs.yaml calls library.cronJob once per extraCronJobs key, sorted: alpha(0), beta(1).
+
+tests:
+  - it: renders one CronJob per key
+    values:
+      - ../ci/09-cronjob.yaml
+    asserts:
+      - hasDocuments:
+          count: 2
+      - equal:
+          path: metadata.name
+          value: test-app-test-consumer-alpha
+        documentIndex: 0
+      - equal:
+          path: metadata.name
+          value: test-app-test-consumer-beta
+        documentIndex: 1
+
+  - it: applies each overlay on top of the shared values
+    values:
+      - ../ci/09-cronjob.yaml
+    asserts:
+      - equal:
+          path: spec.schedule
+          value: "0 3 * * *"
+        documentIndex: 0
+      - equal:
+          path: spec.timeZone
+          value: Etc/UTC
+        documentIndex: 0
+      - equal:
+          path: spec.suspend
+          value: true
+        documentIndex: 1
+      - equal:
+          path: spec.jobTemplate.spec.template.metadata.labels.tenant
+          value: beta
+        documentIndex: 1
+
+  - it: renders nothing without extraCronJobs
+    values:
+      - ../ci/01-defaults.yaml
+    asserts:
+      - hasDocuments:
+          count: 0

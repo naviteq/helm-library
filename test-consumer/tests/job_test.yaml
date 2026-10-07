@@ -1,0 +1,59 @@
+suite: Job
+templates:
+  - app.yaml
+
+# With ../ci/10-job.yaml app.yaml renders a single Job: no Service, HPA or PDB.
+
+tests:
+  - it: renders only a Job when enabled
+    values:
+      - ../ci/10-job.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Job
+        documentIndex: 0
+      - isAPIVersion:
+          of: batch/v1
+        documentIndex: 0
+
+  - it: renders the job fields
+    values:
+      - ../ci/10-job.yaml
+    asserts:
+      - equal:
+          path: spec.backoffLimit
+          value: 2
+      - equal:
+          path: spec.activeDeadlineSeconds
+          value: 600
+      - equal:
+          path: spec.completions
+          value: 1
+      - equal:
+          path: spec.parallelism
+          value: 1
+      - equal:
+          path: spec.template.spec.restartPolicy
+          value: Never
+
+  - it: leaves the revision annotation off the immutable pod template
+    values:
+      - ../ci/10-job.yaml
+    asserts:
+      - notExists:
+          path: spec.template.metadata.annotations
+
+  - it: keeps podAnnotations on the pod template
+    values:
+      - ../ci/10-job.yaml
+    set:
+      podAnnotations:
+        example.com/owner: team
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations["example.com/owner"]
+          value: team
+      - notExists:
+          path: spec.template.metadata.annotations["helm.sh/revision"]

@@ -42,6 +42,39 @@ tests:
           apiVersion: networking.k8s.io/v1
           any: true
 
+  - it: extraIngresses renders one additional Ingress document per entry
+    values:
+      - ../ci/03-full.yaml
+    asserts:
+      - containsDocument:
+          kind: Ingress
+          apiVersion: networking.k8s.io/v1
+          name: release-name-test-consumer-webhooks
+          any: true
+      - equal:
+          path: spec.rules
+          value:
+            - host: webhooks.app.example.com
+              http:
+                paths:
+                  - path: /
+                    pathType: Prefix
+                    backend:
+                      service:
+                        name: webhook-service
+                        port:
+                          name: http
+        documentSelector:
+          path: metadata.name
+          value: release-name-test-consumer-webhooks
+
+  - it: extraIngresses renders nothing extra when the list is empty
+    values:
+      - ../ci/01-defaults.yaml
+    asserts:
+      - hasDocuments:
+          count: 3  # Deployment + PDB + Service, no Ingress
+
   - it: PDB not rendered when pdb.create is false
     values:
       - ../ci/01-defaults.yaml

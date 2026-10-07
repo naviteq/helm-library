@@ -121,6 +121,11 @@ livenessProbe:
 | `containerSecurityContext.runAsUser` | UID to run the container as | `1001` |
 | `containerSecurityContext.runAsNonRoot` | Require non-root user | `true` |
 
+> `runAsUser: 1001` is deliberate, not a placeholder: it matches the UID baked into many common
+> base images. A library serving arbitrary consumer images cannot mandate a high UID without
+> breaking images whose filesystem ownership assumes 1001 — override it per workload if your
+> image needs a different UID.
+
 ### Resources
 
 > **`resources.requests.cpu` and `resources.requests.memory` are required** — the chart will fail without them.
@@ -276,9 +281,15 @@ A single managed Secret per release.
 |-----------|-------------|---------|
 | `serviceAccount.create` | Create a ServiceAccount | `false` |
 | `serviceAccount.name` | Name (auto-generated when `create: true` and empty) | `""` |
-| `serviceAccount.automountServiceAccountToken` | Auto-mount the service account token | `true` |
+| `serviceAccount.automountServiceAccountToken` | Auto-mount the service account token | `false` |
 | `serviceAccount.annotations` | Additional annotations | `{}` |
 | `serviceAccount.labels` | Additional labels | `{}` |
+
+> `automountServiceAccountToken` defaults to `false`: a workload gets no API credentials unless it
+> asks for them. **If your application calls the Kubernetes API, set it to `true`** — otherwise the
+> token is absent at runtime and API calls fail. This applies only where `serviceAccount.create` is
+> `true`; the pod spec itself sets no automount field, so a pre-existing ServiceAccount keeps
+> whatever its own manifest declares.
 
 ### RBAC
 
