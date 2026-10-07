@@ -53,6 +53,12 @@ tasks:
       - echo "==> Validating ci/08-gateway.yaml"
       - helm template test-app {{.CONSUMER_DIR}} -f {{.CONSUMER_DIR}}/ci/08-gateway.yaml
           | kubeconform {{.KUBECONFORM_ARGS}} {{.CRD_ARGS}}
+      - echo "==> Validating ci/09-cronjob.yaml"
+      - helm template test-app {{.CONSUMER_DIR}} -f {{.CONSUMER_DIR}}/ci/09-cronjob.yaml
+          | kubeconform {{.KUBECONFORM_ARGS}}
+      - echo "==> Validating ci/10-job.yaml"
+      - helm template test-app {{.CONSUMER_DIR}} -f {{.CONSUMER_DIR}}/ci/10-job.yaml
+          | kubeconform {{.KUBECONFORM_ARGS}}
 
   "compliance:package":
     desc: Package the consumer chart with its dependencies into .compliance/pkg.

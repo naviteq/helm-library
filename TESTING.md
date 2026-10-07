@@ -72,6 +72,8 @@ test-consumer/
     06-gcp.yaml                    # GCP/GKE-specific resources
     07-aws.yaml                    # AWS/EKS-specific resources
     08-gateway.yaml                # Kubernetes Gateway API resources
+    09-cronjob.yaml                # CronJob mode, plus extraCronJobs rendered per key
+    10-job.yaml                    # One-shot Job mode
   tests/                           # helm-unittest suites
     deployment_test.yaml           # Deployment rendering, image, replicas, required validation
     statefulset_test.yaml          # StatefulSet, volumeClaimTemplates, container mounts
@@ -83,6 +85,9 @@ test-consumer/
     gcp_test.yaml                  # GCP: BackendConfig, FrontendConfig, ManagedCertificate
     aws_test.yaml                  # AWS: ENIConfig, IngressClassParams, TargetGroupBinding, SecurityGroupPolicy
     gateway_test.yaml              # Gateway API: Gateway, HTTPRoute, TLSRoute, TCPRoute, GRPCRoute
+    cronjob_test.yaml              # CronJob schedule, job spec, restart policy, workload-kind guard
+    cronjob_scoped_test.yaml       # library.cronJob called per key against a scoped context
+    job_test.yaml                  # Job spec, restart policy, no revision annotation on the pod
 ```
 
 ### Values files
@@ -97,9 +102,12 @@ test-consumer/
 | `ci/06-gcp.yaml` | GCP/GKE-specific CRDs | 6 |
 | `ci/07-aws.yaml` | AWS/EKS-specific CRDs | 7 |
 | `ci/08-gateway.yaml` | Kubernetes Gateway API CRDs | 8 |
+| `ci/09-cronjob.yaml` | CronJob from `app.yaml` + two from `extra-cronjobs.yaml` | 3 |
+| `ci/10-job.yaml` | One-shot Job | 1 |
 
 Document order for `ci/01-defaults.yaml`: Deployment(0) → PDB(1) → Service(2)
 Document order for `ci/02-statefulset.yaml`: StatefulSet(0) → PDB(1) → Service(2)
+Document order for `ci/09-cronjob.yaml` in `extra-cronjobs.yaml`: one CronJob per key, sorted by key
 
 ### Assertion strategy
 
@@ -119,6 +127,7 @@ Document order for `ci/02-statefulset.yaml`: StatefulSet(0) → PDB(1) → Servi
 |------|------------|
 | ConfigMap, Secret, ServiceAccount, Service | `v1` |
 | Deployment, StatefulSet | `apps/v1` |
+| Job, CronJob | `batch/v1` |
 | PodDisruptionBudget | `policy/v1` |
 | HorizontalPodAutoscaler | `autoscaling/v2` |
 | Ingress | `networking.k8s.io/v1` |

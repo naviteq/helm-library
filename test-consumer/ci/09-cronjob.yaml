@@ -1,0 +1,38 @@
+# CronJob mode, plus two more CronJobs rendered per key through a scoped context
+image:
+  repository: busybox
+  tag: "1.37"
+
+command: ["sh", "-c"]
+args: ["date"]
+
+resources:
+  requests:
+    memory: 64Mi
+    cpu: 50m
+
+podLabels:
+  app.kubernetes.io/component: cronjob
+
+cronJob:
+  enabled: true
+  schedule: "0 2 * * *"
+  timeZone: Etc/UTC
+  startingDeadlineSeconds: 300
+
+job:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+
+extraCronJobs:
+  alpha:
+    cronJob:
+      schedule: "0 3 * * *"
+    podLabels:
+      tenant: alpha
+  beta:
+    cronJob:
+      schedule: "0 4 * * *"
+      suspend: true
+    podLabels:
+      tenant: beta

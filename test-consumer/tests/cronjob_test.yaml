@@ -1,0 +1,105 @@
+suite: CronJob
+templates:
+  - app.yaml
+
+# With ../ci/09-cronjob.yaml app.yaml renders a single CronJob: no Service, HPA or PDB.
+
+tests:
+  - it: renders only a CronJob when enabled
+    values:
+      - ../ci/09-cronjob.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: CronJob
+        documentIndex: 0
+      - isAPIVersion:
+          of: batch/v1
+        documentIndex: 0
+
+  - it: renders the schedule fields
+    values:
+      - ../ci/09-cronjob.yaml
+    asserts:
+      - equal:
+          path: spec.schedule
+          value: "0 2 * * *"
+      - equal:
+          path: spec.timeZone
+          value: Etc/UTC
+      - equal:
+          path: spec.concurrencyPolicy
+          value: Forbid
+      - equal:
+          path: spec.startingDeadlineSeconds
+          value: 300
+      - equal:
+          path: spec.successfulJobsHistoryLimit
+          value: 3
+      - equal:
+          path: spec.failedJobsHistoryLimit
+          value: 1
+      - notExists:
+          path: spec.suspend
+
+  - it: renders a zero backoffLimit and omits unset job fields
+    values:
+      - ../ci/09-cronjob.yaml
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.backoffLimit
+          value: 0
+      - equal:
+          path: spec.jobTemplate.spec.ttlSecondsAfterFinished
+          value: 86400
+      - notExists:
+          path: spec.jobTemplate.spec.activeDeadlineSeconds
+      - notExists:
+          path: spec.jobTemplate.spec.completions
+
+  - it: defaults the pod restart policy to OnFailure
+    values:
+      - ../ci/09-cronjob.yaml
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.restartPolicy
+          value: OnFailure
+
+  - it: carries podLabels on the job and the pod template
+    values:
+      - ../ci/09-cronjob.yaml
+    asserts:
+      - equal:
+          path: spec.jobTemplate.metadata.labels["app.kubernetes.io/component"]
+          value: cronjob
+      - equal:
+          path: spec.jobTemplate.spec.template.metadata.labels["app.kubernetes.io/component"]
+          value: cronjob
+
+  - it: fails without a schedule
+    values:
+      - ../ci/09-cronjob.yaml
+    set:
+      cronJob.schedule: ""
+    asserts:
+      - failedTemplate:
+          errorMessage: "cronJob.schedule is required"
+
+  - it: fails on a restart policy Jobs do not accept
+    values:
+      - ../ci/09-cronjob.yaml
+    set:
+      job.restartPolicy: Always
+    asserts:
+      - failedTemplate:
+          errorMessage: "job.restartPolicy must be OnFailure or Never"
+
+  - it: fails when more than one workload kind is enabled
+    values:
+      - ../ci/09-cronjob.yaml
+    set:
+      statefulSet.enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: "only one of statefulSet.enabled, cronJob.enabled and job.enabled may be true"

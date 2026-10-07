@@ -1,0 +1,85 @@
+{{- define "library.job" -}}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  {{- include "library._workloadMetadata" . | nindent 2 }}
+spec: {{- include "library._jobSpec" (dict "context" . "immutable" true) | nindent 2 }}
+{{- end -}}
+
+{{- define "library.cronJob" -}}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  {{- include "library._workloadMetadata" . | nindent 2 }}
+spec:
+  schedule: {{ required "cronJob.schedule is required" .Values.cronJob.schedule | quote }}
+  {{- if .Values.cronJob.timeZone }}
+  timeZone: {{ .Values.cronJob.timeZone | quote }}
+  {{- end }}
+  {{- if .Values.cronJob.concurrencyPolicy }}
+  concurrencyPolicy: {{ .Values.cronJob.concurrencyPolicy }}
+  {{- end }}
+  {{- if .Values.cronJob.suspend }}
+  suspend: true
+  {{- end }}
+  {{- if include "library._isSet" .Values.cronJob.startingDeadlineSeconds }}
+  startingDeadlineSeconds: {{ .Values.cronJob.startingDeadlineSeconds }}
+  {{- end }}
+  {{- if include "library._isSet" .Values.cronJob.successfulJobsHistoryLimit }}
+  successfulJobsHistoryLimit: {{ .Values.cronJob.successfulJobsHistoryLimit }}
+  {{- end }}
+  {{- if include "library._isSet" .Values.cronJob.failedJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ .Values.cronJob.failedJobsHistoryLimit }}
+  {{- end }}
+  jobTemplate:
+    metadata:
+      labels: {{- include "common.labels.standard" . | nindent 8 }}
+        {{- if .Values.podLabels }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.podLabels "context" $) | nindent 8 }}
+        {{- end }}
+    spec: {{- include "library._jobSpec" (dict "context" .) | nindent 6 }}
+{{- end -}}
+
+{{- define "library._jobSpec" -}}
+{{- $immutable := .immutable | default false -}}
+{{- $ := .context -}}
+{{- with $ -}}
+{{- if not (has .Values.job.restartPolicy (list "OnFailure" "Never")) }}
+{{- fail "job.restartPolicy must be OnFailure or Never" }}
+{{- end -}}
+template: {{- include "library.podTemplate" (dict "context" . "restartPolicy" .Values.job.restartPolicy "immutable" $immutable) | nindent 2 }}
+{{- range $key := list "backoffLimit" "activeDeadlineSeconds" "ttlSecondsAfterFinished" "completions" "parallelism" }}
+{{- $value := get $.Values.job $key }}
+{{- if include "library._isSet" $value }}
+{{ $key }}: {{ $value }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end -}}
+
+{{- define "library._workloadMetadata" -}}
+name: {{ include "common.names.fullname" . }}
+namespace: {{ include "common.names.namespace" . | quote }}
+labels: {{- include "common.labels.standard" . | nindent 2 }}
+  {{- if .Values.labels }}
+  {{- include "common.tplvalues.render" ( dict "value" .Values.labels "context" $ ) | nindent 2 }}
+  {{- end }}
+  {{- if .Values.commonLabels }}
+  {{- include "common.tplvalues.render" ( dict "value" .Values.commonLabels "context" $ ) | nindent 2 }}
+  {{- end }}
+{{- if or .Values.annotations .Values.commonAnnotations }}
+annotations:
+  {{- if .Values.annotations }}
+  {{- include "common.tplvalues.render" ( dict "value" .Values.annotations "context" $) | nindent 2 }}
+  {{- end }}
+  {{- if .Values.commonAnnotations }}
+  {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 2 }}
+  {{- end }}
+{{- end }}
+{{- end -}}
+
+{{- define "library._isSet" -}}
+{{- if and (not (kindIs "invalid" .)) (ne (toString .) "") }}true{{ end -}}
+{{- end -}}

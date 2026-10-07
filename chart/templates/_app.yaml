@@ -4,19 +4,29 @@
 {{ include "library.secret" . }}
 {{ include "library.serviceAccount" . }}
 {{ include "library.rbac" . }}
+{{- if gt (len (without (list .Values.statefulSet.enabled .Values.cronJob.enabled .Values.job.enabled) false)) 1 }}
+{{- fail "only one of statefulSet.enabled, cronJob.enabled and job.enabled may be true" }}
+{{- end }}
+{{- $batch := or .Values.cronJob.enabled .Values.job.enabled }}
 {{- if .Values.image.repository }}
 {{- if .Values.statefulSet.enabled }}
 {{ include "library.statefulSet" . }}
+{{- else if .Values.cronJob.enabled }}
+{{ include "library.cronJob" . }}
+{{- else if .Values.job.enabled }}
+{{ include "library.job" . }}
 {{- else }}
 {{ include "library.deployment" . }}
 {{- end }}
 {{- end }}
+{{- if not $batch }}
 {{ include "library.hpa" . }}
 {{ include "library.pdb" . }}
+{{- end }}
 
 {{ include "library.ingress" . }}
 
-{{- if and .Values.ports .Values.service.ports }}
+{{- if and .Values.ports .Values.service.ports (not $batch) }}
 {{ include "library.service" . }}
 {{- end }}
 

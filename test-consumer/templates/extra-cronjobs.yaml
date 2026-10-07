@@ -1,0 +1,7 @@
+{{- /* One CronJob per extraCronJobs key, each rendered against its own scoped copy of the root context. */}}
+{{- range $name, $overlay := .Values.extraCronJobs }}
+{{- $scoped := deepCopy $ }}
+{{- $values := mergeOverwrite (deepCopy $.Values) $overlay (dict "fullnameOverride" (printf "%s-%s" (include "common.names.fullname" $) $name)) }}
+{{- $_ := set $scoped "Values" $values }}
+{{ include "library.cronJob" $scoped }}
+{{- end }}

@@ -911,6 +911,75 @@ exports:
       ##
       volumeClaimTemplates: []
 
+    ## CronJob configuration (optional replacement for Deployment)
+    ## ref: https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/
+    cronJob:
+      ## @param cronJob.enabled Render a CronJob instead of a Deployment. library.app then skips the Service, HPA and PDB.
+      ## The job spec of every run comes from the `job` block below.
+      ##
+      enabled: false
+
+      ## @param cronJob.schedule Cron schedule (required when the CronJob renders)
+      ##
+      schedule: ""
+
+      ## @param cronJob.timeZone IANA time zone for the schedule, e.g. Etc/UTC. Empty uses the controller's time zone.
+      ##
+      timeZone: ""
+
+      ## @param cronJob.concurrencyPolicy How to treat a run that starts while the previous one is still running
+      ## Allowed values: Allow | Forbid | Replace
+      ##
+      concurrencyPolicy: Forbid
+
+      ## @param cronJob.suspend Suspend all subsequent runs
+      ##
+      suspend: false
+
+      ## @param cronJob.startingDeadlineSeconds Seconds after a missed schedule during which the run may still start. Empty means no deadline.
+      ##
+      startingDeadlineSeconds: ""
+
+      ## @param cronJob.successfulJobsHistoryLimit Number of successful finished Jobs to keep
+      ##
+      successfulJobsHistoryLimit: 3
+
+      ## @param cronJob.failedJobsHistoryLimit Number of failed finished Jobs to keep
+      ##
+      failedJobsHistoryLimit: 1
+
+    ## Job configuration (optional replacement for Deployment, also the job spec of every CronJob run)
+    ## ref: https://kubernetes.io/docs/concepts/workloads/controllers/job/
+    job:
+      ## @param job.enabled Render a Job instead of a Deployment. library.app then skips the Service, HPA and PDB.
+      ##
+      enabled: false
+
+      ## @param job.restartPolicy Pod restart policy for Job and CronJob pods; replaces podRestartPolicy there
+      ## Allowed values: OnFailure | Never
+      ##
+      restartPolicy: OnFailure
+
+      ## @param job.backoffLimit Retries before the Job is marked failed. This and the numeric keys below are omitted when empty.
+      ##
+      backoffLimit: ""
+
+      ## @param job.activeDeadlineSeconds Wall-clock limit for the whole Job, retries included
+      ##
+      activeDeadlineSeconds: ""
+
+      ## @param job.ttlSecondsAfterFinished Seconds after completion before the Job and its pods are deleted
+      ##
+      ttlSecondsAfterFinished: ""
+
+      ## @param job.completions Number of successful pods required to complete the Job
+      ##
+      completions: ""
+
+      ## @param job.parallelism Maximum number of pods running at once
+      ##
+      parallelism: ""
+
     ## @section External Secrets Operator
     ## All ESO resources are disabled by default (empty dicts = no resources rendered).
     ## Each dict key becomes the resource name suffix: <fullname>-<key>.
