@@ -63,4 +63,13 @@
 {{ include "library.tcpRoutes" . }}
 {{ include "library.grpcRoutes" . }}
 
+{{- /* ── Monitoring ──────────────────────────────────────────────────── */}}
+{{ include "library.alertRules" . }}
+{{ include "library.serviceScrapes" . }}
+{{ include "library.podScrapes" . }}
+{{ include "library.grafanaDashboards" . }}
+
+{{- /* ── Network policies ──────────────────────────────────────────── */}}
+{{ include "library.networkPolicies" . }}
+
 {{- end }}

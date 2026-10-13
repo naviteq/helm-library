@@ -1,0 +1,48 @@
+# NetworkPolicy presets plus one free-form policy, and the cloudSecretName probe.
+#
+# Document order (7 total):
+#   0  Deployment
+#   1  PodDisruptionBudget
+#   2  Service
+#   3  ConfigMap       (cloud-secret-name probe)
+#   4  NetworkPolicy   (default-deny)
+#   5  NetworkPolicy   (dns-egress)
+#   6  NetworkPolicy   (allow-http)
+image:
+  repository: nginx
+  tag: "1.27"
+
+resources:
+  requests:
+    memory: 64Mi
+    cpu: 50m
+
+ports:
+  - name: http
+    containerPort: 8080
+
+service:
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+
+cloudSecretNameProbe:
+  style: flat
+  segments: [prod, app, db]
+
+networkPolicy:
+  defaultDeny: true
+  dnsEgress:
+    enabled: true
+  policies:
+    allow-http:
+      spec:
+        podSelector:
+          matchLabels:
+            app.kubernetes.io/name: '{{ include "common.names.name" . }}'
+        policyTypes: [Ingress]
+        ingress:
+          - ports:
+              - port: 8080
+                protocol: TCP

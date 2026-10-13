@@ -1,0 +1,46 @@
+{{/*
+NetworkPolicy per networkPolicy.policies key, plus the defaultDeny and dnsEgress presets.
+Presets select networkPolicy.podSelector, or the workload's own pods when it is empty.
+*/}}
+{{- define "library.networkPolicies" -}}
+{{- $np := .Values.networkPolicy }}
+{{- if $np.defaultDeny }}
+{{ include "library._crdResource" (dict
+  "name"       "default-deny"
+  "res"        (dict "spec" (dict
+                  "podSelector" (include "library.policyPodSelector" $ | fromYaml)
+                  "policyTypes" (list "Ingress" "Egress")))
+  "kind"       "NetworkPolicy"
+  "apiVersion" "networking.k8s.io/v1"
+  "namespaced" true
+  "raw"        true
+  "context"    $) }}
+{{- end }}
+{{- if $np.dnsEgress.enabled }}
+{{- if not $np.dnsEgress.to }}
+{{- fail "networkPolicy.dnsEgress.to must name at least one peer: an empty list allows every destination on 53" }}
+{{- end }}
+{{ include "library._crdResource" (dict
+  "name"       "dns-egress"
+  "res"        (dict "spec" (dict
+                  "podSelector" (include "library.policyPodSelector" $ | fromYaml)
+                  "policyTypes" (list "Egress")
+                  "egress" (list (dict
+                    "to" $np.dnsEgress.to
+                    "ports" (list (dict "port" 53 "protocol" "UDP") (dict "port" 53 "protocol" "TCP"))))))
+  "kind"       "NetworkPolicy"
+  "apiVersion" "networking.k8s.io/v1"
+  "namespaced" true
+  "raw"        true
+  "context"    $) }}
+{{- end }}
+{{- range $name, $policy := $np.policies }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        $policy
+  "kind"       "NetworkPolicy"
+  "apiVersion" "networking.k8s.io/v1"
+  "namespaced" true
+  "context"    $) }}
+{{- end }}
+{{- end -}}

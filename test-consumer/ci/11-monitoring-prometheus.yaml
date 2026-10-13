@@ -1,0 +1,79 @@
+# Monitoring on the Prometheus Operator CRDs: rules, scrapes and dashboards.
+#
+# Document order (9 total):
+#   0  Deployment
+#   1  PodDisruptionBudget
+#   2  Service
+#   3  PrometheusRule   (static)
+#   4  PrometheusRule   (thresholds, from groupsTemplate)
+#   5  ServiceMonitor   (metrics)
+#   6  PodMonitor       (pods)
+#   7  ConfigMap        (dashboards, from files)
+#   8  ConfigMap        (inline, from json)
+image:
+  repository: nginx
+  tag: "1.27"
+
+resources:
+  requests:
+    memory: 64Mi
+    cpu: 50m
+
+ports:
+  - name: http
+    containerPort: 8080
+
+service:
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+
+errorRatio: 0.1
+
+monitoring:
+  system: prometheus
+  alertRules:
+    static:
+      labels:
+        release: kube-prometheus-stack
+      groups:
+        - name: test-consumer
+          rules:
+            - alert: TestConsumerDown
+              expr: up{job="test-consumer"} == 0
+              for: 5m
+              labels:
+                severity: critical
+              annotations:
+                summary: "{{ $labels.instance }} is down"
+                description: "Down for {{ $value }} checks"
+    thresholds:
+      groupsTemplate: test-consumer.ruleGroups
+  serviceScrapes:
+    metrics:
+      spec:
+        selector:
+          matchLabels:
+            app.kubernetes.io/name: test-consumer
+        endpoints:
+          - port: http
+            path: /metrics
+            interval: 30s
+  podScrapes:
+    pods:
+      spec:
+        selector:
+          matchLabels:
+            app.kubernetes.io/name: test-consumer
+        podMetricsEndpoints:
+          - port: http
+  dashboardFolder: Apps
+  dashboards:
+    dashboards:
+      files: dashboards/*.json
+    inline:
+      folder: Inline
+      namespace: monitoring
+      json:
+        inline.json: '{"uid": "inline", "title": "Inline", "panels": []}'

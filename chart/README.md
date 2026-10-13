@@ -302,41 +302,34 @@ A single managed Secret per release.
 | `rbac.annotations` | Additional annotations | `{}` |
 | `rbac.labels` | Additional labels | `{}` |
 
-### ServiceMonitor
+### Monitoring
+
+Alert rules, scrape targets and Grafana dashboards. `monitoring.system` picks the operator CRDs: `prometheus` renders PrometheusRule, ServiceMonitor and PodMonitor; `victoriametrics` renders VMRule, VMServiceScrape and VMPodScrape. Each dict key becomes `<fullname>-<key>` unless the entry sets `fullnameOverride`.
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `serviceMonitor.enabled` | Deploy a Prometheus Operator ServiceMonitor | `false` |
-| `serviceMonitor.namespace` | Namespace where Prometheus is running | `""` |
-| `serviceMonitor.labels` | Additional labels | `{}` |
-| `serviceMonitor.annotations` | Additional annotations | `{}` |
-| `serviceMonitor.jobLabel` | Label on the target service used as the Prometheus job name | `""` |
-| `serviceMonitor.honorLabels` | Honor metric labels on collisions | `false` |
-| `serviceMonitor.interval` | Scrape interval | `""` |
-| `serviceMonitor.scrapeTimeout` | Scrape timeout | `""` |
-| `serviceMonitor.port` | Port to scrape | `http` |
-| `serviceMonitor.path` | Metrics path | `/metrics` |
-| `serviceMonitor.metricRelabelings` | Metric relabeling rules | `[]` |
-| `serviceMonitor.relabelings` | General relabeling rules | `[]` |
-| `serviceMonitor.selector` | Prometheus instance selector labels | `{}` |
-| `serviceMonitor.namespaceSelector` | Namespace selector | `{}` |
+| `monitoring.system` | `prometheus` or `victoriametrics` | `prometheus` |
+| `monitoring.alertRules` | One rule resource per key. `groups` is emitted verbatim (no tpl), so `{{ $labels.x }}` stays literal; `groupsTemplate` names a consumer template that renders `groups:` | `{}` |
+| `monitoring.serviceScrapes` | One ServiceMonitor or VMServiceScrape per key; `.spec` passed through | `{}` |
+| `monitoring.podScrapes` | One PodMonitor or VMPodScrape per key; `.spec` passed through | `{}` |
+| `monitoring.dashboards` | One ConfigMap per key from `files` (glob in the consumer chart) and/or `json` (inline); optional `folder`, `namespace` | `{}` |
+| `monitoring.dashboardLabels` | Labels the Grafana sidecar selects by | `{grafana_dashboard: "1"}` |
+| `monitoring.dashboardFolder` | Default folder for every dashboard | `""` |
+| `monitoring.dashboardFolderAnnotation` | Annotation the sidecar reads the folder from | `grafana_dashboard_folder` |
 
-### PodMonitor
+### Network policies
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `podMonitor.enabled` | Deploy a Prometheus Operator PodMonitor | `false` |
-| `podMonitor.namespace` | Namespace where Prometheus is running | `""` |
-| `podMonitor.jobLabel` | Job label | `""` |
-| `podMonitor.port` | Port to scrape | `http` |
-| `podMonitor.path` | Metrics path | `/metrics` |
-| `podMonitor.interval` | Scrape interval | `30s` |
-| `podMonitor.scrapeTimeout` | Scrape timeout | `10s` |
-| `podMonitor.labels` | Additional labels | `{}` |
-| `podMonitor.relabelings` | General relabeling rules | `{}` |
-| `podMonitor.metricRelabelings` | Metric relabeling rules | `[]` |
-| `podMonitor.namespaceSelector` | Namespace selector | `{}` |
-| `podMonitor.selector` | Pod selector | `{}` |
+| `networkPolicy.podSelector` | Pods the presets select; empty means the workload selector labels | `{}` |
+| `networkPolicy.defaultDeny` | Render `<fullname>-default-deny` (Ingress and Egress) | `false` |
+| `networkPolicy.dnsEgress.enabled` | Render `<fullname>-dns-egress`, allowing 53/UDP and 53/TCP to `dnsEgress.to` | `false` |
+| `networkPolicy.dnsEgress.to` | DNS peers; must not be empty | kube-dns in kube-system |
+| `networkPolicy.policies` | One NetworkPolicy per key; `.spec` passed through tpl | `{}` |
+
+### Helpers
+
+`library.cloudSecretName` builds a cloud secret name from a dict `style` (`path` → `/a/b`, `flat` → `a-b`) and `segments`, for secret stores that reject slashes.
 
 ---
 
