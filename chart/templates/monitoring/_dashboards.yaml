@@ -1,0 +1,44 @@
+{{/*
+Grafana dashboard ConfigMap per monitoring.dashboards key, labelled for the Grafana sidecar.
+Data comes from files (a glob in the consumer chart) and json (filename → inline JSON).
+*/}}
+{{- define "library.grafanaDashboards" -}}
+{{- $mon := .Values.monitoring }}
+{{- range $name, $db := $mon.dashboards }}
+{{- if not (or $db.files $db.json) }}
+{{- fail (printf "monitoring.dashboards.%s needs files or json" $name) }}
+{{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $db.fullnameOverride | default (printf "%s-%s" (include "common.names.fullname" $) $name) }}
+  namespace: {{ $db.namespace | default (include "common.names.namespace" $) | quote }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" $.Values.commonLabels "context" $ ) | nindent 4 }}
+    {{- toYaml $mon.dashboardLabels | nindent 4 }}
+    {{- with $db.labels }}
+    {{- include "common.tplvalues.render" ( dict "value" . "context" $ ) | nindent 4 }}
+    {{- end }}
+  {{- $folder := $db.folder | default $mon.dashboardFolder }}
+  {{- if or $folder $db.annotations $.Values.commonAnnotations }}
+  annotations:
+    {{- with $.Values.commonAnnotations }}
+    {{- include "common.tplvalues.render" ( dict "value" . "context" $ ) | nindent 4 }}
+    {{- end }}
+    {{- with $folder }}
+    {{ $mon.dashboardFolderAnnotation }}: {{ . | quote }}
+    {{- end }}
+    {{- with $db.annotations }}
+    {{- include "common.tplvalues.render" ( dict "value" . "context" $ ) | nindent 4 }}
+    {{- end }}
+  {{- end }}
+data:
+  {{- with $db.files }}
+  {{- ($.Files.Glob .).AsConfig | nindent 2 }}
+  {{- end }}
+  {{- range $file, $json := $db.json }}
+  {{ $file }}: |-
+    {{- $json | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end -}}

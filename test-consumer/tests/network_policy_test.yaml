@@ -1,0 +1,105 @@
+suite: Network policies
+templates:
+  - app.yaml
+
+# With ../ci/13-network-policy.yaml: 6 docs (3 baseline + default-deny, dns-egress, allow-http)
+
+tests:
+  - it: no NetworkPolicy rendered by default
+    values:
+      - ../ci/01-defaults.yaml
+    asserts:
+      - hasDocuments:
+          count: 3
+
+  - it: renders both presets and the free-form policy
+    values:
+      - ../ci/13-network-policy.yaml
+    asserts:
+      - hasDocuments:
+          count: 6
+      - containsDocument:
+          kind: NetworkPolicy
+          apiVersion: networking.k8s.io/v1
+          name: release-name-test-consumer-default-deny
+          any: true
+      - containsDocument:
+          kind: NetworkPolicy
+          apiVersion: networking.k8s.io/v1
+          name: release-name-test-consumer-dns-egress
+          any: true
+      - containsDocument:
+          kind: NetworkPolicy
+          apiVersion: networking.k8s.io/v1
+          name: release-name-test-consumer-allow-http
+          any: true
+
+  - it: default-deny selects the workload pods and denies both directions
+    values:
+      - ../ci/13-network-policy.yaml
+    documentSelector:
+      path: metadata.name
+      value: release-name-test-consumer-default-deny
+    asserts:
+      - equal:
+          path: spec.podSelector.matchLabels
+          value:
+            app.kubernetes.io/name: test-consumer
+            app.kubernetes.io/instance: RELEASE-NAME
+      - equal:
+          path: spec.policyTypes
+          value: [Ingress, Egress]
+
+  - it: dns-egress allows 53 over UDP and TCP to kube-dns
+    values:
+      - ../ci/13-network-policy.yaml
+    documentSelector:
+      path: metadata.name
+      value: release-name-test-consumer-dns-egress
+    asserts:
+      - equal:
+          path: spec.egress[0].ports
+          value:
+            - port: 53
+              protocol: UDP
+            - port: 53
+              protocol: TCP
+      - equal:
+          path: spec.egress[0].to[0].podSelector.matchLabels.k8s-app
+          value: kube-dns
+
+  - it: presets follow networkPolicy.podSelector when it is set
+    values:
+      - ../ci/13-network-policy.yaml
+    set:
+      networkPolicy.podSelector:
+        matchLabels:
+          app.kubernetes.io/name: upstream-app
+    documentSelector:
+      path: metadata.name
+      value: release-name-test-consumer-dns-egress
+    asserts:
+      - equal:
+          path: spec.podSelector.matchLabels
+          value:
+            app.kubernetes.io/name: upstream-app
+
+  - it: passes the free-form spec through tpl
+    values:
+      - ../ci/13-network-policy.yaml
+    documentSelector:
+      path: metadata.name
+      value: release-name-test-consumer-allow-http
+    asserts:
+      - equal:
+          path: spec.podSelector.matchLabels["app.kubernetes.io/name"]
+          value: test-consumer
+
+  - it: refuses an empty dnsEgress peer list
+    values:
+      - ../ci/13-network-policy.yaml
+    set:
+      networkPolicy.dnsEgress.to: []
+    asserts:
+      - failedTemplate:
+          errorMessage: "networkPolicy.dnsEgress.to must name at least one peer: an empty list allows every destination on 53"

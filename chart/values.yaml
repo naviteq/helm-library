@@ -997,11 +997,19 @@ exports:
       ##       labels: {}
       ##       annotations: {}
       ##       spec:
-      ##        tenantId: 11111111-2222-3333-4444-111111111111
-      ##        registry: example.azurecr.io
-      ##        auth:
-      ##          managedIdentity:
-      ##            identityId: 11111111-2222-3333-4444-111111111111
+      ##         refreshInterval: 1h
+      ##         secretStoreRef:
+      ##           name: aws-sm
+      ##           kind: ClusterSecretStore
+      ##         target:
+      ##           name: app-db
+      ##         data:
+      ##           - secretKey: password
+      ##             remoteRef:
+      ##               key: /prod/app/db
+      ##               property: password
+      ## The spec goes through tpl, so ESO template expressions must be escaped:
+      ##   {{ "{{ .password }}" }} renders as {{ .password }} for ESO to evaluate.
       ##
       externalSecrets: {}
 
@@ -1119,8 +1127,8 @@ exports:
         ##                {
         ##                  "auths": {
         ##                    "myregistry.azurecr.io": {
-        ##                      "username": "{{ .username }}",
-        ##                      "password": "{{ .password }}"
+        ##                      "username": "{{ "{{ .username }}" }}",
+        ##                      "password": "{{ "{{ .password }}" }}"
         ##                    }
         ##                  }
         ##                }
@@ -1594,6 +1602,122 @@ exports:
       ##                 port: 9090
       ##
       grpcRoutes: {}
+
+    ## @section Monitoring
+    ## Alert rules, scrape targets and Grafana dashboards. Empty dicts render nothing.
+    ## Each dict key becomes the resource name suffix: <fullname>-<key>, unless the entry sets fullnameOverride.
+    ##
+    monitoring:
+
+      ## @param monitoring.system Operator CRDs to render: `prometheus` (PrometheusRule, ServiceMonitor, PodMonitor) or `victoriametrics` (VMRule, VMServiceScrape, VMPodScrape)
+      ##
+      system: prometheus
+
+      ## @param monitoring.alertRules Dict of rule resources, one VMRule or PrometheusRule per key
+      ## Entry fields: labels, annotations, fullnameOverride, and exactly one of
+      ##   groups          - list of rule groups, emitted verbatim (no tpl), so `{{ $labels.x }}` stays literal
+      ##   groupsTemplate  - name of a named template in the consumer chart that renders `groups:`;
+      ##                     use it when thresholds come from values, and escape Prometheus templating there
+      ## Example:
+      ##   alertRules:
+      ##     app:
+      ##       groups:
+      ##         - name: app
+      ##           rules:
+      ##             - alert: AppDown
+      ##               expr: up{job="app"} == 0
+      ##               for: 5m
+      ##               labels:
+      ##                 severity: critical
+      ##               annotations:
+      ##                 summary: "{{ $labels.instance }} is down"
+      ##
+      alertRules: {}
+
+      ## @param monitoring.serviceScrapes Dict of VMServiceScrape or ServiceMonitor resources; .spec is passed through
+      ## Example:
+      ##   serviceScrapes:
+      ##     metrics:
+      ##       spec:
+      ##         selector:
+      ##           matchLabels:
+      ##             app.kubernetes.io/name: app
+      ##         endpoints:
+      ##           - port: http
+      ##             path: /metrics
+      ##             interval: 30s
+      ##
+      serviceScrapes: {}
+
+      ## @param monitoring.podScrapes Dict of VMPodScrape or PodMonitor resources; .spec is passed through
+      ##
+      podScrapes: {}
+
+      ## @param monitoring.dashboards Dict of Grafana dashboard ConfigMaps, one per key
+      ## Entry fields: labels, annotations, fullnameOverride, namespace, folder, and at least one of
+      ##   files - glob relative to the consumer chart, e.g. `dashboards/*.json`
+      ##   json  - map of file name to inline dashboard JSON
+      ## Example:
+      ##   dashboards:
+      ##     ops:
+      ##       folder: Apps
+      ##       files: dashboards/*.json
+      ##
+      dashboards: {}
+
+      ## @param monitoring.dashboardLabels Labels the Grafana sidecar selects dashboard ConfigMaps by
+      ##
+      dashboardLabels:
+        grafana_dashboard: "1"
+
+      ## @param monitoring.dashboardFolder Default Grafana folder for every dashboard; an entry's `folder` overrides it
+      ##
+      dashboardFolder: ""
+
+      ## @param monitoring.dashboardFolderAnnotation Annotation the Grafana sidecar reads the folder from (its `folderAnnotation`)
+      ##
+      dashboardFolderAnnotation: grafana_dashboard_folder
+
+    ## @section Network policies
+    ## Presets and free-form NetworkPolicies. Everything is off by default.
+    ##
+    networkPolicy:
+
+      ## @param networkPolicy.podSelector Pods the presets select; empty means the workload's own selector labels
+      ##
+      podSelector: {}
+
+      ## @param networkPolicy.defaultDeny Render <fullname>-default-deny, denying all ingress and egress no other policy allows
+      ##
+      defaultDeny: false
+
+      ## @param networkPolicy.dnsEgress.enabled Render <fullname>-dns-egress, allowing DNS on 53/UDP and 53/TCP to the peers in `to`
+      ## @param networkPolicy.dnsEgress.to Peers allowed on 53; a list, so an override replaces the default. Must not be empty
+      ##
+      dnsEgress:
+        enabled: false
+        to:
+          - namespaceSelector:
+              matchLabels:
+                kubernetes.io/metadata.name: kube-system
+            podSelector:
+              matchLabels:
+                k8s-app: kube-dns
+
+      ## @param networkPolicy.policies Dict of NetworkPolicy resources; .spec is passed through (tpl applies)
+      ## Example:
+      ##   policies:
+      ##     allow-ingress:
+      ##       spec:
+      ##         podSelector:
+      ##           matchLabels:
+      ##             app.kubernetes.io/name: app
+      ##         policyTypes: [Ingress]
+      ##         ingress:
+      ##           - ports:
+      ##               - port: 8080
+      ##
+      policies: {}
 
     ## Pod Disruption Budget configuration
     ## ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/

@@ -74,6 +74,9 @@ test-consumer/
     08-gateway.yaml                # Kubernetes Gateway API resources
     09-cronjob.yaml                # CronJob mode, plus extraCronJobs rendered per key
     10-job.yaml                    # One-shot Job mode
+    11-monitoring-prometheus.yaml  # Rules, scrapes and dashboards as Prometheus Operator CRDs
+    12-monitoring-victoriametrics.yaml # The same values as VictoriaMetrics operator CRDs
+    13-network-policy.yaml         # NetworkPolicy presets, a free-form policy, cloudSecretName probe
   tests/                           # helm-unittest suites
     deployment_test.yaml           # Deployment rendering, image, replicas, required validation
     statefulset_test.yaml          # StatefulSet, volumeClaimTemplates, container mounts
@@ -88,6 +91,9 @@ test-consumer/
     cronjob_test.yaml              # CronJob schedule, job spec, restart policy, workload-kind guard
     cronjob_scoped_test.yaml       # library.cronJob called per key against a scoped context
     job_test.yaml                  # Job spec, restart policy, no revision annotation on the pod
+    monitoring_test.yaml           # Rule/scrape kinds per monitoring.system, verbatim rule templating, dashboards
+    network_policy_test.yaml       # defaultDeny and dnsEgress presets, podSelector override, free-form policies
+    cloud_secret_name_test.yaml    # library.cloudSecretName path and flat styles
 ```
 
 ### Values files
@@ -104,6 +110,9 @@ test-consumer/
 | `ci/08-gateway.yaml` | Kubernetes Gateway API CRDs | 8 |
 | `ci/09-cronjob.yaml` | CronJob from `app.yaml` + two from `extra-cronjobs.yaml` | 3 |
 | `ci/10-job.yaml` | One-shot Job | 1 |
+| `ci/11-monitoring-prometheus.yaml` | PrometheusRule ×2, ServiceMonitor, PodMonitor, dashboard ConfigMaps ×2 | 9 |
+| `ci/12-monitoring-victoriametrics.yaml` | VMRule ×2, VMServiceScrape, VMPodScrape, dashboard ConfigMaps ×2 | 9 |
+| `ci/13-network-policy.yaml` | NetworkPolicy ×3 from `app.yaml`, plus the `cloud-secret-name.yaml` probe | 6 + 1 |
 
 Document order for `ci/01-defaults.yaml`: Deployment(0) → PDB(1) → Service(2)
 Document order for `ci/02-statefulset.yaml`: StatefulSet(0) → PDB(1) → Service(2)
@@ -144,6 +153,9 @@ Document order for `ci/09-cronjob.yaml` in `extra-cronjobs.yaml`: one CronJob pe
 | Gateway | `gateway.networking.k8s.io/v1` |
 | HTTPRoute, GRPCRoute | `gateway.networking.k8s.io/v1` |
 | TLSRoute, TCPRoute | `gateway.networking.k8s.io/v1alpha2` |
+| NetworkPolicy | `networking.k8s.io/v1` |
+| PrometheusRule, ServiceMonitor, PodMonitor | `monitoring.coreos.com/v1` |
+| VMRule, VMServiceScrape, VMPodScrape | `operator.victoriametrics.com/v1beta1` |
 | ACRAccessToken, ECRAuthorizationToken, STSSessionToken, GCRAccessToken, GithubAccessToken, VaultDynamicSecret, Webhook, Password, MFA, SSHKey, Fake, UUID, ClusterGenerator | `generators.external-secrets.io/v1alpha1` |
 
 ## Run a single test suite
