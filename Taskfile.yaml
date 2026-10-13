@@ -39,8 +39,10 @@ tasks:
       - helm template test-app {{.CONSUMER_DIR}} -f {{.CONSUMER_DIR}}/ci/03-full.yaml
           | kubeconform {{.KUBECONFORM_ARGS}} {{.CRD_ARGS}}
       - echo "==> Validating ci/04-eso.yaml"
+      # The catalog's SecretStore schemas overwrite the crd provider's `additionalProperties`
+      # field with `false`, which kubeconform cannot compile, so those two kinds are skipped.
       - helm template test-app {{.CONSUMER_DIR}} -f {{.CONSUMER_DIR}}/ci/04-eso.yaml
-          | kubeconform {{.KUBECONFORM_ARGS}} {{.CRD_ARGS}}
+          | kubeconform {{.KUBECONFORM_ARGS}} {{.CRD_ARGS}} -skip SecretStore,ClusterSecretStore
       - echo "==> Validating ci/05-keda.yaml"
       - helm template test-app {{.CONSUMER_DIR}} -f {{.CONSUMER_DIR}}/ci/05-keda.yaml
           | kubeconform {{.KUBECONFORM_ARGS}} {{.CRD_ARGS}}

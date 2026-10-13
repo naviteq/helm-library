@@ -337,6 +337,8 @@ Alert rules, scrape targets and Grafana dashboards. `monitoring.system` picks th
 
 All ESO resources are disabled by default (empty dict = no resources rendered). Each dict key becomes the resource name suffix: `<fullname>-<key>`. Every entry accepts `.labels`, `.annotations`, and `.spec`.
 
+ExternalSecrets render the fields the ESO CRDs default server-side — `target.creationPolicy: Owner`, `target.deletionPolicy: Retain`, and `conversionStrategy`, `decodingStrategy`, `metadataPolicy`, `nullBytePolicy` on `data[].remoteRef`, `dataFrom[].extract` and (the first two) `dataFrom[].find` — so Argo CD reports no drift. A value the entry sets explicitly wins.
+
 ref: https://external-secrets.io/latest/
 
 | Parameter | Kind | apiVersion | Scope | Default |
