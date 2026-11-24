@@ -39,8 +39,10 @@ tasks:
       - helm template test-app {{.CONSUMER_DIR}} -f {{.CONSUMER_DIR}}/ci/03-full.yaml
           | kubeconform {{.KUBECONFORM_ARGS}} {{.CRD_ARGS}}
       - echo "==> Validating ci/04-eso.yaml"
+      # The catalog's SecretStore schemas overwrite the crd provider's `additionalProperties`
+      # field with `false`, which kubeconform cannot compile, so those two kinds are skipped.
       - helm template test-app {{.CONSUMER_DIR}} -f {{.CONSUMER_DIR}}/ci/04-eso.yaml
-          | kubeconform {{.KUBECONFORM_ARGS}} {{.CRD_ARGS}}
+          | kubeconform {{.KUBECONFORM_ARGS}} {{.CRD_ARGS}} -skip SecretStore,ClusterSecretStore
       - echo "==> Validating ci/05-keda.yaml"
       - helm template test-app {{.CONSUMER_DIR}} -f {{.CONSUMER_DIR}}/ci/05-keda.yaml
           | kubeconform {{.KUBECONFORM_ARGS}} {{.CRD_ARGS}}
@@ -58,6 +60,15 @@ tasks:
           | kubeconform {{.KUBECONFORM_ARGS}}
       - echo "==> Validating ci/10-job.yaml"
       - helm template test-app {{.CONSUMER_DIR}} -f {{.CONSUMER_DIR}}/ci/10-job.yaml
+          | kubeconform {{.KUBECONFORM_ARGS}}
+      - echo "==> Validating ci/11-monitoring-prometheus.yaml"
+      - helm template test-app {{.CONSUMER_DIR}} -f {{.CONSUMER_DIR}}/ci/11-monitoring-prometheus.yaml
+          | kubeconform {{.KUBECONFORM_ARGS}} {{.CRD_ARGS}}
+      - echo "==> Validating ci/12-monitoring-victoriametrics.yaml"
+      - helm template test-app {{.CONSUMER_DIR}} -f {{.CONSUMER_DIR}}/ci/12-monitoring-victoriametrics.yaml
+          | kubeconform {{.KUBECONFORM_ARGS}} {{.CRD_ARGS}}
+      - echo "==> Validating ci/13-network-policy.yaml"
+      - helm template test-app {{.CONSUMER_DIR}} -f {{.CONSUMER_DIR}}/ci/13-network-policy.yaml
           | kubeconform {{.KUBECONFORM_ARGS}}
 
   "compliance:package":

@@ -1,0 +1,35 @@
+{{/*
+VMRule or PrometheusRule per monitoring.alertRules key, picked by monitoring.system.
+Groups are emitted without tpl, so Prometheus templating in annotations survives as written.
+*/}}
+{{- define "library.alertRules" -}}
+{{- $vm := eq (include "library.monitoringSystem" $) "victoriametrics" }}
+{{- range $name, $rule := .Values.monitoring.alertRules }}
+{{- $groups := $rule.groups }}
+{{- if $rule.groupsTemplate }}
+{{- $groups = (include $rule.groupsTemplate $ | fromYaml).groups }}
+{{- end }}
+{{- if not $groups }}
+{{- fail (printf "monitoring.alertRules.%s needs groups or groupsTemplate" $name) }}
+{{- end }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        (merge (dict "spec" (dict "groups" $groups)) (omit $rule "groups" "groupsTemplate"))
+  "kind"       (ternary "VMRule" "PrometheusRule" $vm)
+  "apiVersion" (ternary "operator.victoriametrics.com/v1beta1" "monitoring.coreos.com/v1" $vm)
+  "namespaced" true
+  "raw"        true
+  "context"    $) }}
+{{- end }}
+{{- end -}}
+
+{{/*
+monitoring.system, validated: victoriametrics or prometheus.
+*/}}
+{{- define "library.monitoringSystem" -}}
+{{- $system := .Values.monitoring.system | default "prometheus" -}}
+{{- if not (has $system (list "victoriametrics" "prometheus")) -}}
+{{- fail (printf "monitoring.system must be \"victoriametrics\" or \"prometheus\", got %q" $system) -}}
+{{- end -}}
+{{- $system -}}
+{{- end -}}

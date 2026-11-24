@@ -1,0 +1,33 @@
+{{/*
+VMServiceScrape or ServiceMonitor per monitoring.serviceScrapes key.
+ref: https://docs.victoriametrics.com/operator/resources/vmservicescrape/
+*/}}
+{{- define "library.serviceScrapes" -}}
+{{- $vm := eq (include "library.monitoringSystem" $) "victoriametrics" }}
+{{- range $name, $scrape := .Values.monitoring.serviceScrapes }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        $scrape
+  "kind"       (ternary "VMServiceScrape" "ServiceMonitor" $vm)
+  "apiVersion" (ternary "operator.victoriametrics.com/v1beta1" "monitoring.coreos.com/v1" $vm)
+  "namespaced" true
+  "context"    $) }}
+{{- end }}
+{{- end -}}
+
+{{/*
+VMPodScrape or PodMonitor per monitoring.podScrapes key.
+ref: https://docs.victoriametrics.com/operator/resources/vmpodscrape/
+*/}}
+{{- define "library.podScrapes" -}}
+{{- $vm := eq (include "library.monitoringSystem" $) "victoriametrics" }}
+{{- range $name, $scrape := .Values.monitoring.podScrapes }}
+{{ include "library._crdResource" (dict
+  "name"       $name
+  "res"        $scrape
+  "kind"       (ternary "VMPodScrape" "PodMonitor" $vm)
+  "apiVersion" (ternary "operator.victoriametrics.com/v1beta1" "monitoring.coreos.com/v1" $vm)
+  "namespaced" true
+  "context"    $) }}
+{{- end }}
+{{- end -}}

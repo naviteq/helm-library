@@ -42,6 +42,7 @@ Parameters (dict):
   apiVersion - full apiVersion string
   namespaced - bool; if true, namespace is added to metadata
   context    - the root Helm context ($)
+  raw        - bool; if true, spec is emitted as-is instead of through tpl
 */}}
 {{- define "library._crdResource" -}}
 {{- $name := .name -}}
@@ -54,7 +55,7 @@ Parameters (dict):
 apiVersion: {{ $apiVersion }}
 kind: {{ $kind }}
 metadata:
-  name: {{ printf "%s-%s" (include "common.names.fullname" $ctx) $name }}
+  name: {{ $res.fullnameOverride | default (printf "%s-%s" (include "common.names.fullname" $ctx) $name) }}
   {{- if $namespaced }}
   namespace: {{ include "common.names.namespace" $ctx | quote }}
   {{- end }}
@@ -71,9 +72,38 @@ metadata:
     {{- include "common.tplvalues.render" ( dict "value" $res.annotations "context" $ctx ) | nindent 4 }}
     {{- end }}
   {{- end }}
-{{- if $res.spec }}
+{{- if and $res.spec .raw }}
+spec: {{- toYaml $res.spec | nindent 2 }}
+{{- else if $res.spec }}
 spec: {{- include "common.tplvalues.render" ( dict "value" $res.spec "context" $ctx ) | nindent 2 }}
 {{- end }}
+{{- end -}}
+
+{{/*
+Cloud-secret name for an ExternalSecret key: `path` joins segments as /a/b (AWS),
+`flat` as a-b (OCI Vault rejects slashes). Expects a dict: style, segments.
+*/}}
+{{- define "library.cloudSecretName" -}}
+{{- $style := .style | default "path" -}}
+{{- if eq $style "flat" -}}
+{{- join "-" .segments -}}
+{{- else if eq $style "path" -}}
+/{{ join "/" .segments }}
+{{- else -}}
+{{- fail (printf "secret name style must be \"path\" or \"flat\", got %q" $style) -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Pod selector for library-rendered policies: networkPolicy.podSelector when set,
+otherwise the workload's own matchLabels.
+*/}}
+{{- define "library.policyPodSelector" -}}
+{{- if .Values.networkPolicy.podSelector -}}
+{{- toYaml .Values.networkPolicy.podSelector -}}
+{{- else -}}
+matchLabels: {{- include "common.labels.matchLabels" . | nindent 2 }}
+{{- end -}}
 {{- end -}}
 
 {{- define "library.image" -}}

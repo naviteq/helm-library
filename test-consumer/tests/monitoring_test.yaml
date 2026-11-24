@@ -1,0 +1,164 @@
+suite: Monitoring
+templates:
+  - app.yaml
+
+# With ../ci/11-monitoring-prometheus.yaml:     9 docs (3 baseline + 2 rules, 2 scrapes, 2 dashboards)
+# With ../ci/12-monitoring-victoriametrics.yaml: 9 docs (same values, VictoriaMetrics kinds)
+
+tests:
+  - it: no monitoring resources rendered by default
+    values:
+      - ../ci/01-defaults.yaml
+    asserts:
+      - hasDocuments:
+          count: 3
+
+  - it: renders Prometheus Operator kinds when monitoring.system is prometheus
+    values:
+      - ../ci/11-monitoring-prometheus.yaml
+    asserts:
+      - hasDocuments:
+          count: 9
+      - containsDocument:
+          kind: PrometheusRule
+          apiVersion: monitoring.coreos.com/v1
+          name: release-name-test-consumer-static
+          any: true
+      - containsDocument:
+          kind: ServiceMonitor
+          apiVersion: monitoring.coreos.com/v1
+          any: true
+      - containsDocument:
+          kind: PodMonitor
+          apiVersion: monitoring.coreos.com/v1
+          any: true
+
+  - it: renders VictoriaMetrics kinds when monitoring.system is victoriametrics
+    values:
+      - ../ci/12-monitoring-victoriametrics.yaml
+    asserts:
+      - hasDocuments:
+          count: 9
+      - containsDocument:
+          kind: VMRule
+          apiVersion: operator.victoriametrics.com/v1beta1
+          any: true
+      - containsDocument:
+          kind: VMServiceScrape
+          apiVersion: operator.victoriametrics.com/v1beta1
+          any: true
+      - containsDocument:
+          kind: VMPodScrape
+          apiVersion: operator.victoriametrics.com/v1beta1
+          any: true
+
+  - it: keeps Prometheus templating in rule annotations untouched
+    values:
+      - ../ci/12-monitoring-victoriametrics.yaml
+    documentSelector:
+      path: metadata.name
+      value: release-name-test-consumer-static
+    asserts:
+      - equal:
+          path: spec.groups[0].rules[0].annotations.summary
+          value: "{{ $labels.instance }} is down"
+      - equal:
+          path: spec.groups[0].rules[0].annotations.description
+          value: "Down for {{ $value }} checks"
+
+  - it: renders groupsTemplate with thresholds from values
+    values:
+      - ../ci/11-monitoring-prometheus.yaml
+    documentSelector:
+      path: metadata.name
+      value: release-name-test-consumer-thresholds
+    asserts:
+      - equal:
+          path: spec.groups[0].rules[0].expr
+          value: rate(http_errors_total[5m]) / rate(http_requests_total[5m]) > 0.1
+      - equal:
+          path: spec.groups[0].rules[0].annotations.summary
+          value: "{{ $labels.instance }} error ratio above threshold"
+
+  - it: keeps entry labels on the rule
+    values:
+      - ../ci/11-monitoring-prometheus.yaml
+    documentSelector:
+      path: metadata.name
+      value: release-name-test-consumer-static
+    asserts:
+      - equal:
+          path: metadata.labels.release
+          value: kube-prometheus-stack
+
+  - it: names a rule by fullnameOverride when set
+    values:
+      - ../ci/11-monitoring-prometheus.yaml
+    set:
+      monitoring.alertRules.static.fullnameOverride: legacy-rule-name
+    asserts:
+      - containsDocument:
+          kind: PrometheusRule
+          apiVersion: monitoring.coreos.com/v1
+          name: legacy-rule-name
+          any: true
+
+  - it: fails on a rule entry with neither groups nor groupsTemplate
+    values:
+      - ../ci/01-defaults.yaml
+    set:
+      monitoring.alertRules.empty.labels.team: x
+    asserts:
+      - failedTemplate:
+          errorMessage: "monitoring.alertRules.empty needs groups or groupsTemplate"
+
+  - it: fails on an unknown monitoring.system
+    values:
+      - ../ci/11-monitoring-prometheus.yaml
+    set:
+      monitoring.system: datadog
+    asserts:
+      - failedTemplate:
+          errorMessage: 'monitoring.system must be "victoriametrics" or "prometheus", got "datadog"'
+
+  - it: ships dashboard files with the sidecar label and the default folder
+    values:
+      - ../ci/11-monitoring-prometheus.yaml
+    documentSelector:
+      path: metadata.name
+      value: release-name-test-consumer-dashboards
+    asserts:
+      - equal:
+          path: metadata.labels.grafana_dashboard
+          value: "1"
+      - equal:
+          path: metadata.annotations.grafana_dashboard_folder
+          value: Apps
+      - exists:
+          path: data["sample.json"]
+
+  - it: puts an inline dashboard in its own namespace and folder
+    values:
+      - ../ci/11-monitoring-prometheus.yaml
+    documentSelector:
+      path: metadata.name
+      value: release-name-test-consumer-inline
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: monitoring
+      - equal:
+          path: metadata.annotations.grafana_dashboard_folder
+          value: Inline
+      - equal:
+          path: data["inline.json"]
+          value: '{"uid": "inline", "title": "Inline", "panels": []}'
+
+  - it: fails on a dashboard entry with neither files nor json
+    values:
+      - ../ci/01-defaults.yaml
+    set:
+      monitoring.dashboards.empty.folder: Apps
+    asserts:
+      - failedTemplate:
+          errorMessage: "monitoring.dashboards.empty needs files or json"
