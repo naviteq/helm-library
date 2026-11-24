@@ -323,7 +323,8 @@ Alert rules, scrape targets and Grafana dashboards. `monitoring.system` picks th
 |-----------|-------------|---------|
 | `networkPolicy.podSelector` | Pods the presets select; empty means the workload selector labels | `{}` |
 | `networkPolicy.defaultDeny` | Render `<fullname>-default-deny` (Ingress and Egress) | `false` |
-| `networkPolicy.dnsEgress.enabled` | Render `<fullname>-dns-egress`, allowing 53/UDP and 53/TCP to `dnsEgress.to` | `false` |
+| `networkPolicy.dnsEgress.enabled` | Render `<fullname>-dns-egress` (or `dnsEgress.fullnameOverride`), allowing 53/UDP and 53/TCP to `dnsEgress.to` | `false` |
+| `networkPolicy.dnsEgress.fullnameOverride` | Literal name for the dns-egress policy instead of `<fullname>-dns-egress`; not passed through tpl, so it must already be a valid DNS-1123 name | `""` |
 | `networkPolicy.dnsEgress.to` | DNS peers; must not be empty | kube-dns in kube-system |
 | `networkPolicy.policies` | One NetworkPolicy per key; `.spec` passed through tpl | `{}` |
 

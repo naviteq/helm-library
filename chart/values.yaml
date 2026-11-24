@@ -1691,11 +1691,13 @@ exports:
       ##
       defaultDeny: false
 
-      ## @param networkPolicy.dnsEgress.enabled Render <fullname>-dns-egress, allowing DNS on 53/UDP and 53/TCP to the peers in `to`
+      ## @param networkPolicy.dnsEgress.enabled Render <fullname>-dns-egress (or `fullnameOverride`), allowing DNS on 53/UDP and 53/TCP to the peers in `to`
+      ## @param networkPolicy.dnsEgress.fullnameOverride Literal name for the dns-egress policy instead of <fullname>-dns-egress; not passed through tpl, so it must already be a valid DNS-1123 name
       ## @param networkPolicy.dnsEgress.to Peers allowed on 53; a list, so an override replaces the default. Must not be empty
       ##
       dnsEgress:
         enabled: false
+        fullnameOverride: ""
         to:
           - namespaceSelector:
               matchLabels:

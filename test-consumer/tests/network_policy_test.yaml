@@ -84,6 +84,66 @@ tests:
           value:
             app.kubernetes.io/name: upstream-app
 
+  - it: dns-egress takes fullnameOverride and keeps its spec, namespace and labels
+    values:
+      - ../ci/13-network-policy.yaml
+    set:
+      networkPolicy.dnsEgress.fullnameOverride: custom-dns-egress
+    documentSelector:
+      path: metadata.name
+      value: custom-dns-egress
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: NAMESPACE
+      - equal:
+          path: metadata.labels
+          value:
+            app.kubernetes.io/instance: RELEASE-NAME
+            app.kubernetes.io/managed-by: Helm
+            app.kubernetes.io/name: test-consumer
+            helm.sh/chart: test-consumer-0.1.0
+      - equal:
+          path: spec
+          value:
+            podSelector:
+              matchLabels:
+                app.kubernetes.io/instance: RELEASE-NAME
+                app.kubernetes.io/name: test-consumer
+            policyTypes: [Egress]
+            egress:
+              - to:
+                  - namespaceSelector:
+                      matchLabels:
+                        kubernetes.io/metadata.name: kube-system
+                    podSelector:
+                      matchLabels:
+                        k8s-app: kube-dns
+                ports:
+                  - port: 53
+                    protocol: UDP
+                  - port: 53
+                    protocol: TCP
+
+  - it: fullnameOverride wins over a fullname truncated at 63 characters
+    release:
+      name: a-release-name-that-is-fifty-three-characters-long-xy
+    values:
+      - ../ci/13-network-policy.yaml
+    set:
+      networkPolicy.dnsEgress.fullnameOverride: custom-dns-egress
+    asserts:
+      - containsDocument:
+          kind: NetworkPolicy
+          apiVersion: networking.k8s.io/v1
+          name: custom-dns-egress
+          any: true
+      - containsDocument:
+          kind: NetworkPolicy
+          apiVersion: networking.k8s.io/v1
+          name: a-release-name-that-is-fifty-three-characters-long-xy-test-cons-default-deny
+          any: true
+
   - it: passes the free-form spec through tpl
     values:
       - ../ci/13-network-policy.yaml

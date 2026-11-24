@@ -22,7 +22,7 @@ Presets select networkPolicy.podSelector, or the workload's own pods when it is 
 {{- end }}
 {{ include "library._crdResource" (dict
   "name"       "dns-egress"
-  "res"        (dict "spec" (dict
+  "res"        (dict "fullnameOverride" $np.dnsEgress.fullnameOverride "spec" (dict
                   "podSelector" (include "library.policyPodSelector" $ | fromYaml)
                   "policyTypes" (list "Egress")
                   "egress" (list (dict
